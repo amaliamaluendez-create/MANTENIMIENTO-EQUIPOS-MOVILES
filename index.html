@@ -116,7 +116,10 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
   <div class="metric"><div class="metric-label">Alertas vencidas</div><div class="metric-value warn" id="m-vencidas">0</div></div>
   <div class="metric"><div class="metric-label">Costo total</div><div class="metric-value" id="m-costo">$0</div></div>
 </div>
+<p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Ubicación</p>
 <div class="ubic-bar" id="ubic-bar"></div>
+<p style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Categoría</p>
+<div class="ubic-bar" id="tipo-bar"></div>
 <datalist id="ubic-datalist"></datalist>
 <datalist id="operadores-datalist"></datalist>
 <div class="tabs">
@@ -174,6 +177,10 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 </div>
 
 <div class="panel" id="panel-reportes">
+  <div class="card">
+    <div class="card-title">Fuera de servicio / en mantenimiento</div>
+    <div id="reporte-no-operativas"></div>
+  </div>
   <div class="card">
     <div class="card-title">Combustible total por máquina (litros)</div>
     <div id="reporte-combustible-maquina"></div>
@@ -406,9 +413,21 @@ function setUbic(u){ currentUbic=u; renderUbicBar(); renderMaquinas(); }
 function setUbicIdx(i){ setUbic(window._ubicOpciones[i]); }
 function filterMaquinas(v){ searchTerm=v.toLowerCase(); renderMaquinas(); }
 
+let currentTipo = 'Todas';
+function renderTipoBar(){
+  const tipos=[...new Set(state.equipos.map(e=>e.tipo))].sort((a,b)=>a.localeCompare(b,'es'));
+  const el=document.getElementById('tipo-bar');
+  if(!el) return;
+  el.innerHTML = ['Todas',...tipos].map((t,i)=>`<button class="ubic-btn ${t===currentTipo?'active':''}" onclick="setTipoIdx(${i})">${t}</button>`).join('');
+  window._tipoOpciones = ['Todas',...tipos];
+}
+function setTipo(t){ currentTipo=t; renderTipoBar(); renderMaquinas(); }
+function setTipoIdx(i){ setTipo(window._tipoOpciones[i]); }
+
 function equiposFiltrados(){
   return state.equipos.filter(e=>{
     if(currentUbic!=='Todas' && e.ubicacion!==currentUbic) return false;
+    if(currentTipo!=='Todas' && e.tipo!==currentTipo) return false;
     if(searchTerm){
       const hay = (e.nombre+' '+(e.marca||'')+' '+(e.modeloM||'')+' '+(e.serie||'')+' '+(e.invNro||'')+' '+e.ubicacion).toLowerCase();
       if(!hay.includes(searchTerm)) return false;
@@ -801,8 +820,23 @@ function barList(containerId, data){
 }
 
 function renderReportes(){
+  renderReporteNoOperativas();
   renderReporteCombustiblePorMaquina();
   renderReportePorUbicacion();
+}
+
+function renderReporteNoOperativas(){
+  const cont = document.getElementById('reporte-no-operativas');
+  const lista = state.equipos.filter(e=>e.estado!=='Operativo');
+  if(!lista.length){ cont.innerHTML = '<div class="empty">Todos los equipos están operativos.</div>'; return; }
+  const ordenada = [...lista].sort((a,b)=>a.estado==='Fuera de servicio'?-1:1);
+  cont.innerHTML = ordenada.map(e=>`<div class="item-card">
+    <div class="item-meta" style="justify-content:space-between">
+      <span class="item-name" style="margin:0">${e.nombre}</span>
+      ${badgeEstado(e.estado)}
+    </div>
+    <div class="item-ref">${e.ubicacion}${e.motivo ? ' · '+e.motivo : ''}</div>
+  </div>`).join('');
 }
 
 function renderReporteCombustiblePorMaquina(){
@@ -852,6 +886,7 @@ function renderAll(){
   horasAcumuladas = calcularHorasAcumuladas();
   horasDesdeService = calcularHorasDesdeService();
   renderUbicBar();
+  renderTipoBar();
   renderOperadoresDatalist();
   renderMaquinas();
   renderHistorial();
