@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Mantenimiento">
 <title>Mantenimiento de Equipos Móviles</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>:root{
   --bg:#ffffff;
   --bg2:#fff3c2;
@@ -100,7 +101,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v1.0</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.0</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -283,12 +284,15 @@ function renderAdminPin(){
   }
 }
 
-function guardarPin(){
+async function guardarPin(){
   const op = document.getElementById('pin-operador').value;
   const pin = document.getElementById('pin-nuevo').value.trim();
   if(!op || !pin){ alert('Elegí un operador e ingresá el nuevo PIN.'); return; }
   operadorPins[op] = pin;
   document.getElementById('pin-nuevo').value='';
+  if(supabase_client){
+    try{ await supabase_client.from('operador_pins').upsert({operador:op, pin}, {onConflict:'operador'}); }catch(e){ console.log('Error guardando PIN', e); }
+  }
   alert('PIN actualizado para '+op+'.');
 }
 
@@ -324,20 +328,44 @@ function calcularHorasDesdeService(){
 let currentUbic = 'Todas';
 let searchTerm = '';
 
-const state = {
-equipos: [{"id": 1, "invNro": "3", "nombre": "Camión Articulado Volvo A30C", "marca": "Volvo", "modeloM": "A30C", "anio": 1997, "serie": "A30CV2646", "motor": "", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-07-31"}, {"id": 2, "invNro": "6", "nombre": "Pala Cargadora XCMG ZL50G", "marca": "XCMG", "modeloM": "ZL50G", "anio": 2001, "serie": "10705033", "motor": "50705089772", "ubicacion": "OPEN DOOR", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-10"}, {"id": 3, "invNro": "7", "nombre": "Pala Cargadora Caterpillar 966D", "marca": "Caterpillar", "modeloM": "966 D", "anio": 2002, "serie": "99Y2858", "motor": "7N5456V", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-20"}, {"id": 4, "invNro": "9", "nombre": "Pala Cargadora Caterpillar 950F", "marca": "Caterpillar", "modeloM": "950 F", "anio": 2003, "serie": "2 LM 00772", "motor": "7JF00465", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-13"}, {"id": 5, "invNro": "11", "nombre": "Retroexcavadora Hyundai R210-LC7", "marca": "Hyundai", "modeloM": "R210-LC7", "anio": 2007, "serie": "60716308", "motor": "26411743", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-10-17"}, {"id": 6, "invNro": "15", "nombre": "Camión Articulado Volvo A40E", "marca": "Volvo", "modeloM": "A40E", "anio": 2011, "serie": "VCE0A40EL00013632", "motor": "D16*049196*", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-09-15"}, {"id": 7, "invNro": "16", "nombre": "Retroexcavadora Komatzu PC200-8", "marca": "Komatzu", "modeloM": "PC200-8", "anio": 2011, "serie": "B31296", "motor": "", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-14"}, {"id": 8, "invNro": "18", "nombre": "Cargadora Hyundai HL760-7A (001769)", "marca": "Hyundai", "modeloM": "HL760-7A", "anio": 2012, "serie": "HHIHLC04ECO 001769", "motor": "26596737", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-22"}, {"id": 9, "invNro": "20", "nombre": "Pala Cargadora SEM 650B", "marca": "SEM", "modeloM": "650B", "anio": 2013, "serie": "A1209024AH1209040", "motor": "C9129004835", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-12"}, {"id": 10, "invNro": "21", "nombre": "Retroexcavadora Hyundai R220LC-9S (003373)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2014, "serie": "HHKHZ614LD0003373", "motor": "73407417", "ubicacion": "Arenal - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-09-23"}, {"id": 11, "invNro": "22", "nombre": "Pala Cargadora Hyundai HL740-7A", "marca": "Hyundai", "modeloM": "HL740-7A", "anio": 2014, "serie": "HHKHZFO7HB0000624", "motor": "26584023", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-14"}, {"id": 12, "invNro": "23", "nombre": "Retroexcavadora Hyundai R220LC-9S (HG0009745)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2014, "serie": "HHZHZ614HG0009745", "motor": "73573345", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-04"}, {"id": 13, "invNro": "24", "nombre": "Excavadora Hyundai R220LC-9S (JF0009140)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2015, "serie": "HHKHZ614JF0009140", "motor": "76005336", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-30"}, {"id": 14, "invNro": "25", "nombre": "Excavadora Hyundai R220LC-9S (HG0009745/2016)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2016, "serie": "HHZHZ614HG0009745", "motor": "76006660", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-04"}, {"id": 15, "invNro": "26", "nombre": "Pala Cargadora Hyundai HL760-9S", "marca": "Hyundai", "modeloM": "HL760-9S", "anio": 2016, "serie": "HHKHLL05JG000627", "motor": "76005646", "ubicacion": "Arenal - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 16, "invNro": "27", "nombre": "Pala Cargadora Hyundai HL760-9SB (CCH0000028)", "marca": "Hyundai", "modeloM": "HL760-9SB", "anio": 2017, "serie": "HBRH760CCH0000028", "motor": "", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-21"}, {"id": 17, "invNro": "28", "nombre": "Pala Cargadora Hyundai HL770-9S (AH0000711)", "marca": "Hyundai", "modeloM": "HL770-9S", "anio": 2017, "serie": "HHKHLK05AH0000711", "motor": "22242756", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-12"}, {"id": 18, "invNro": "29", "nombre": "Pala Cargadora Hyundai HL760-9SB (CCH0000031)", "marca": "Hyundai", "modeloM": "HL760-9SB", "anio": 2017, "serie": "HBRH760CCH0000031", "motor": "36569870", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-11"}, {"id": 19, "invNro": "32", "nombre": "Pala Cargadora SEM 655D", "marca": "SEM", "modeloM": "655D", "anio": 2017, "serie": "SEM00655KS5501965", "motor": "90020035", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-28"}, {"id": 20, "invNro": "35", "nombre": "Excavadora Hyundai R330LC-9S", "marca": "Hyundai", "modeloM": "R330LC-9S", "anio": 2018, "serie": "HHKHZ905CJ0003795", "motor": "22268158", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-07-09"}, {"id": 21, "invNro": "37", "nombre": "Pala Cargadora Hyundai HL770-9S (EJ0000816)", "marca": "Hyundai", "modeloM": "HL770-9S", "anio": 2019, "serie": "HHKHLK05EJ0000816", "motor": "22292625", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-15"}, {"id": 22, "invNro": "38", "nombre": "Pala Cargadora Hyundai HL760-9SB (CCH0000045)", "marca": "Hyundai", "modeloM": "HL760-9SB", "anio": 2019, "serie": "HBRH760CCH0000045", "motor": "36578884", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-25"}, {"id": 23, "invNro": "39", "nombre": "Camión Articulado Bell B30E #1", "marca": "Bell", "modeloM": "B30E", "anio": 2019, "serie": "AEBA830EV02108794", "motor": "926915-C-1147309", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-09-23"}, {"id": 24, "invNro": "40", "nombre": "Pala Cargadora SEM 669C", "marca": "SEM", "modeloM": "669C", "anio": 2017, "serie": "SEM00669CS6J00477", "motor": "C9175001083", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-24"}, {"id": 25, "invNro": "41", "nombre": "Pala Cargadora Hyundai HL775-9S", "marca": "Hyundai", "modeloM": "HL775-9S", "anio": 2020, "serie": "HHKHLK07KL0000051", "motor": "35354670", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-03"}, {"id": 26, "invNro": "43", "nombre": "Pala Cargadora SEM 655D (KS5509175)", "marca": "SEM", "modeloM": "655D", "anio": 2021, "serie": "SEM00655KS5509175", "motor": "90185755", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 27, "invNro": "44", "nombre": "Camión Articulado Volvo A40F", "marca": "Volvo", "modeloM": "A40F", "anio": 2012, "serie": "VCE0A40FC00051561", "motor": "D16*9098573*", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-09-23"}, {"id": 28, "invNro": "45", "nombre": "Pala Cargadora SANY SYL956H5", "marca": "SANY", "modeloM": "SYL956H5", "anio": 2022, "serie": "SL9563CB06518", "motor": "82458597", "ubicacion": "OPEN DOOR", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-12"}, {"id": 29, "invNro": "47", "nombre": "Pala Cargadora SEM 655D (ES5510787)", "marca": "SEM", "modeloM": "655D", "anio": 2023, "serie": "SEM00655ES5510787", "motor": "1222F007121", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-28"}, {"id": 30, "invNro": "48", "nombre": "Pala Cargadora XCMG ZL60KN", "marca": "XCMG", "modeloM": "ZL60KN", "anio": 2023, "serie": "XUG0600KEPCB09919", "motor": "1223D005634", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-16"}, {"id": 31, "invNro": "48b", "nombre": "Pala Cargadora Topway TM958", "marca": "Topway", "modeloM": "TM958", "anio": 2024, "serie": "231250688", "motor": "1223K013985", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-05"}, {"id": 32, "invNro": "49", "nombre": "Pala Cargadora Topway TM958", "marca": "Topway", "modeloM": "TM958", "anio": 2024, "serie": "231250689", "motor": "1223K013986", "ubicacion": "Arenal - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-12"}, {"id": 33, "invNro": "51", "nombre": "Camión Articulado Bell B30E #2", "marca": "Bell", "modeloM": "B30E", "anio": 2024, "serie": "AEBA830EV03511622", "motor": "926.915 U1 466.067", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-08-25"}, {"id": 34, "invNro": "53", "nombre": "Mini Cargadora Topway TM60L", "marca": "Topway", "modeloM": "TM60L", "anio": 2025, "serie": "240476", "motor": "24198909", "ubicacion": "Federal - Río Negro", "tipo": "Mini cargadoras", "estado": "Operativo", "proximo": "2026-08-07"}, {"id": 35, "invNro": "54", "nombre": "Retroexcavadora Topway TM360.8", "marca": "Topway", "modeloM": "TM360.8", "anio": 2025, "serie": "36B002AJ", "motor": "93373418", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-25"}, {"id": 36, "invNro": "55", "nombre": "Retroexcavadora Topway TM520.8", "marca": "Topway", "modeloM": "TM520.8", "anio": 2025, "serie": "52B0020J", "motor": "71143257", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-22"}, {"id": 37, "invNro": "56", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2025, "serie": "241250738", "motor": "1224J013011", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-15"}, {"id": 38, "invNro": "58", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2025, "serie": "241250735", "motor": "1224S012553", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-21"}, {"id": 39, "invNro": "59", "nombre": "Pala Cargadora Topway TM968", "marca": "Topway", "modeloM": "TM968", "anio": 2025, "serie": "241250731", "motor": "1224S012548", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-25"}, {"id": 40, "invNro": "60", "nombre": "Pala Cargadora Topway TM968", "marca": "Topway", "modeloM": "TM968", "anio": 2025, "serie": "241250732", "motor": "1224S012549", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-07"}, {"id": 41, "invNro": "61", "nombre": "Autoelevador Topway CPCD35/4WD", "marca": "Topway", "modeloM": "CPCD35/4WD", "anio": 2025, "serie": "24111045", "motor": "24148977", "ubicacion": "San Juan - San Juan", "tipo": "Autoelevadores", "estado": "Operativo", "proximo": "2026-09-13"}, {"id": 42, "invNro": "62", "nombre": "Autoelevador Topway CPCD25", "marca": "Topway", "modeloM": "CPCD25", "anio": 2025, "serie": "25030271", "motor": "25071074", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Autoelevadores", "estado": "Operativo", "proximo": "2026-09-04"}, {"id": 43, "invNro": "63", "nombre": "Manitou Topway TMT4007", "marca": "Topway", "modeloM": "TMT4007", "anio": 2025, "serie": "TMT4007-4K2098", "motor": "9342466", "ubicacion": "Federal - Río Negro", "tipo": "Autoelevadores", "estado": "Operativo", "proximo": "2026-09-27"}, {"id": 44, "invNro": "68", "nombre": "Mini Cargadora Oruga Topway TM30Y", "marca": "Topway", "modeloM": "TM30Y", "anio": 2025, "serie": "TMQ3032N6850", "motor": "N6850", "ubicacion": "Federal - Río Negro", "tipo": "Mini cargadoras", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 45, "invNro": "69", "nombre": "Mini Cargadora Oruga Topway TM30Y", "marca": "Topway", "modeloM": "TM30Y", "anio": 2025, "serie": "TMQ3031P4585", "motor": "P4585", "ubicacion": "Federal - Río Negro", "tipo": "Mini cargadoras", "estado": "Operativo", "proximo": "2026-10-16"}, {"id": 46, "invNro": "70", "nombre": "Camión Articulado Bell B30E #3", "marca": "Bell", "modeloM": "B30E", "anio": 2026, "serie": "AEBA830EH03612227", "motor": "926.915 U1 534.874", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 47, "invNro": "71", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2026, "serie": "260150770", "motor": "1225K017676", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-06"}, {"id": 48, "invNro": "72", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2026, "serie": "260150771", "motor": "1225K017675", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-16"}, {"id": 49, "invNro": "73", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2026, "serie": "260150772", "motor": "1225K017677", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-14"}, {"id": 50, "invNro": "17", "nombre": "Semirremolque Furtan 8B9STF1373BFYT067", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2017, "serie": "8B9STF1373BFYT067", "motor": "", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-07-26"}, {"id": 51, "invNro": "18", "nombre": "Semirremolque Furtan 8B9STF1373BFYT068", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2017, "serie": "8B9STF1373BFYT068", "motor": "", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-08-22"}, {"id": 52, "invNro": "33", "nombre": "Semirremolque Furtan 8B9STF1323BFYT136", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2021, "serie": "8B9STF1323BFYT136", "motor": "", "ubicacion": "OPEN DOOR", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-10-19"}, {"id": 53, "invNro": "34", "nombre": "Semirremolque Furtan 8B9STF1323BFYT137", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2021, "serie": "8B9STF1323BFYT137", "motor": "", "ubicacion": "OPEN DOOR", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-10-10"}, {"id": 54, "invNro": "44", "nombre": "Razer Tail Superior 48\"", "marca": "Superior", "modeloM": "48 Razertail", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}, {"id": 55, "invNro": "45", "nombre": "Stacker Superior 42\"x60", "marca": "Superior", "modeloM": "42x60 PRSC", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}, {"id": 56, "invNro": "46", "nombre": "SPS Custom FS-100 8", "marca": "Custom", "modeloM": "FS-100", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}, {"id": 57, "invNro": "", "nombre": "SPS Cutom FS-100 7", "marca": "Custom", "modeloM": "FS 100", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}],
-historial: [
-  {id:1, equipoId:1, fecha:'2026-02-14', tipo:'Service', horas:180, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Ana López', costo:180, notas:''},
-  {id:2, equipoId:6, fecha:'2026-03-02', tipo:'Reparación / Correctivo', horas:220, aceiteFiltros:'', repuestos:'Manguera hidráulica', litros:'', realizadoPor:'Juan Pérez', costo:420, notas:''},
-  {id:3, equipoId:12, fecha:'2026-03-20', tipo:'Service', horas:95, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Ana López', costo:90, notas:''},
-  {id:4, equipoId:20, fecha:'2026-04-11', tipo:'Service', horas:150, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Marcos Díaz', costo:150, notas:''},
-  {id:5, equipoId:9, fecha:'2026-05-06', tipo:'Reparación / Correctivo', horas:280, aceiteFiltros:'', repuestos:'Cilindro de dirección', litros:'', realizadoPor:'Juan Pérez', costo:610, notas:''},
-  {id:6, equipoId:29, fecha:'2026-05-28', tipo:'Service', horas:60, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Marcos Díaz', costo:200, notas:''},
-  {id:7, equipoId:35, fecha:'2026-06-15', tipo:'Reparación / Correctivo', horas:140, aceiteFiltros:'', repuestos:'Tren delantero completo', litros:'', realizadoPor:'Ana López', costo:350, notas:''},
-  {id:8, equipoId:47, fecha:'2026-07-01', tipo:'Service', horas:35, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Juan Pérez', costo:80, notas:''}
-]
-};
-uid = Math.max(...state.equipos.map(e=>e.id), ...state.historial.map(h=>h.id)) + 1;
+const SUPABASE_URL = 'https://umhclyrdttsyfljaubut.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lRqJMM_gJTGCQsUPJHV-8Q_R2ol9kRz';
+let supabase_client = null;
+try {
+  if(window.supabase) supabase_client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e){ console.log('Supabase no disponible', e); }
+
+const state = { equipos: [], historial: [] };
+uid = 1;
+
+async function cargarDesdeSupabase(){
+  if(!supabase_client) return;
+  try {
+    const [eqRes, histRes, opsRes, pinsRes] = await Promise.all([
+      supabase_client.from('equipos').select('*').order('id'),
+      supabase_client.from('historial').select('*').order('id'),
+      supabase_client.from('operadores').select('*').order('id'),
+      supabase_client.from('operador_pins').select('*')
+    ]);
+    const eqs = eqRes.data, hist = histRes.data, ops = opsRes.data, pins = pinsRes.data;
+    if(eqs) state.equipos = eqs.map(e=>({
+      id:e.id, invNro:e.inv_nro, nombre:e.nombre, marca:e.marca, modeloM:e.modelo_m, anio:e.anio,
+      serie:e.serie, motor:e.motor, ubicacion:e.ubicacion, tipo:e.tipo, estado:e.estado, motivo:e.motivo, proximo:e.proximo
+    }));
+    if(hist) state.historial = hist.map(h=>({
+      id:h.id, equipoId:h.equipo_id, fecha:h.fecha, tipo:h.tipo, horas:h.horas, aceiteFiltros:h.aceite_filtros,
+      repuestos:h.repuestos, litros:h.litros, realizadoPor:h.realizado_por, costo:h.costo, notas:h.notas
+    }));
+    if(ops && ops.length){
+      operadores = ops.map(o=>o.nombre);
+      operadoresPorUbicacion = {};
+      ops.forEach(o=>{ if(o.ubicacion){ (operadoresPorUbicacion[o.ubicacion] = operadoresPorUbicacion[o.ubicacion]||[]).push(o.nombre); } });
+    }
+    if(pins) pins.forEach(p=>{ operadorPins[p.operador] = p.pin; });
+    const allIds = [0].concat(state.equipos.map(e=>e.id)).concat(state.historial.map(h=>h.id));
+    uid = Math.max(...allIds) + 1;
+  } catch(e){ console.log('Error cargando de Supabase', e); }
+}
 
 function tipoDe(nombre){
   const n = nombre.toLowerCase();
@@ -526,14 +554,19 @@ function toggleEquipo(id){
   renderMaquinas();
 }
 
-function updateCampo(id, campo, val){
+const CAMPO_A_COLUMNA = {invNro:'inv_nro', modeloM:'modelo_m', ubicacion:'ubicacion', estado:'estado', motivo:'motivo', proximo:'proximo', marca:'marca', anio:'anio', serie:'serie', motor:'motor', nombre:'nombre'};
+
+async function updateCampo(id, campo, val){
   const e = state.equipos.find(x=>x.id===id);
   if(!e) return;
   e[campo] = (campo==='anio') ? (Number(val)||val) : val;
   renderAll();
+  if(supabase_client && CAMPO_A_COLUMNA[campo]){
+    try{ await supabase_client.from('equipos').update({[CAMPO_A_COLUMNA[campo]]: e[campo]}).eq('id', id); }catch(err){ console.log('Error guardando campo', err); }
+  }
 }
 
-function addServicioInline(id, key){
+async function addServicioInline(id, key){
   const cfg = TIPO_CONFIG[key];
   const fecha = document.getElementById('sf-fecha-'+id).value;
   const horas = Number(document.getElementById('sf-horas-'+id).value) || 0;
@@ -549,15 +582,29 @@ function addServicioInline(id, key){
   else if(cfg.extra==='litros') entry.litros = Number(extraVal)||0;
   else entry.repuestos = extraVal;
   state.historial.push(entry);
-  if(!operadores.includes(realizadoPor)) operadores.push(realizadoPor);
+  const operadorNuevo = !operadores.includes(realizadoPor);
+  if(operadorNuevo) operadores.push(realizadoPor);
   const eq = state.equipos.find(x=>x.id===id);
+  let ubicNueva = false;
   if(eq){
     if(!operadoresPorUbicacion[eq.ubicacion]) operadoresPorUbicacion[eq.ubicacion] = [];
-    if(!operadoresPorUbicacion[eq.ubicacion].includes(realizadoPor)) operadoresPorUbicacion[eq.ubicacion].push(realizadoPor);
+    if(!operadoresPorUbicacion[eq.ubicacion].includes(realizadoPor)){ operadoresPorUbicacion[eq.ubicacion].push(realizadoPor); ubicNueva = true; }
   }
   expandedIds.add(id);
   renderAll();
   showToast('msg-servicio-'+id);
+  if(supabase_client){
+    try{
+      const {data} = await supabase_client.from('historial').insert({
+        equipo_id:id, fecha, tipo:cfg.tipoLabel, horas, aceite_filtros:entry.aceiteFiltros||null,
+        repuestos:entry.repuestos||null, litros:entry.litros===''?null:entry.litros, realizado_por:realizadoPor, costo:0, notas
+      }).select().single();
+      if(data){ entry.id = data.id; if(uid <= data.id) uid = data.id+1; }
+      if(operadorNuevo || ubicNueva){
+        await supabase_client.from('operadores').upsert({nombre:realizadoPor, ubicacion: eq?eq.ubicacion:null}, {onConflict:'nombre'});
+      }
+    }catch(err){ console.log('Error guardando historial', err); }
+  }
 }
 
 function renderOperadoresDatalist(){
@@ -585,7 +632,7 @@ function renderOperadoresLista(){
   </div>`).join('');
 }
 
-function agregarOperador(){
+async function agregarOperador(){
   const input = document.getElementById('nuevo-operador');
   const nombre = input.value.trim();
   if(!nombre) return;
@@ -595,14 +642,21 @@ function agregarOperador(){
   renderOperadoresDatalist();
   poblarLoginOperadores();
   renderAdminPin();
+  if(supabase_client){
+    try{ await supabase_client.from('operadores').upsert({nombre}, {onConflict:'nombre'}); }catch(err){ console.log('Error guardando operador', err); }
+  }
 }
 
-function delOperador(i){
+async function delOperador(i){
+  const nombre = operadores[i];
   operadores.splice(i,1);
   renderOperadoresLista();
   renderOperadoresDatalist();
   poblarLoginOperadores();
   renderAdminPin();
+  if(supabase_client && nombre){
+    try{ await supabase_client.from('operadores').delete().eq('nombre', nombre); }catch(err){ console.log('Error borrando operador', err); }
+  }
 }
 
 function toggleAltaEquipo(){
@@ -610,7 +664,7 @@ function toggleAltaEquipo(){
   box.style.display = box.style.display==='none' ? 'block' : 'none';
 }
 
-function crearEquipo(){
+async function crearEquipo(){
   const nombre = document.getElementById('eq-nombre').value;
   const invNro = document.getElementById('eq-inv').value;
   const marca = document.getElementById('eq-marca').value;
@@ -622,20 +676,40 @@ function crearEquipo(){
   const estado = document.getElementById('eq-estado').value;
   const proximo = document.getElementById('eq-proximo').value;
   if(!nombre || !ubicacion || !proximo) return;
-  state.equipos.push({id:uid++, invNro, nombre, marca, modeloM, anio, serie, motor, ubicacion, tipo:tipoDe(nombre), estado, proximo});
+  const tipo = tipoDe(nombre);
+  const nuevoEquipo = {id:uid++, invNro, nombre, marca, modeloM, anio, serie, motor, ubicacion, tipo, estado, proximo};
+  state.equipos.push(nuevoEquipo);
   ['eq-nombre','eq-inv','eq-marca','eq-modeloM','eq-anio','eq-serie','eq-motor','eq-ubicacion','eq-proximo'].forEach(i=>document.getElementById(i).value='');
   renderAll();
   showToast('msg-equipo');
+  if(supabase_client){
+    try{
+      const {data} = await supabase_client.from('equipos').insert({
+        inv_nro:invNro||null, nombre, marca:marca||null, modelo_m:modeloM||null, anio:anio||null,
+        serie:serie||null, motor:motor||null, ubicacion, tipo, estado, proximo
+      }).select().single();
+      if(data){ nuevoEquipo.id = data.id; if(uid <= data.id) uid = data.id+1; }
+    }catch(err){ console.log('Error guardando equipo', err); }
+  }
 }
 
-function delEquipo(id){
+async function delEquipo(id){
   state.equipos = state.equipos.filter(e=>e.id!==id);
   state.historial = state.historial.filter(h=>h.equipoId!==id);
   expandedIds.delete(id);
   delete formAbierto[id];
   renderAll();
+  if(supabase_client){
+    try{ await supabase_client.from('equipos').delete().eq('id', id); }catch(err){ console.log('Error borrando equipo', err); }
+  }
 }
-function delHistorial(id){ state.historial = state.historial.filter(h=>h.id!==id); renderAll(); }
+async function delHistorial(id){
+  state.historial = state.historial.filter(h=>h.id!==id);
+  renderAll();
+  if(supabase_client){
+    try{ await supabase_client.from('historial').delete().eq('id', id); }catch(err){ console.log('Error borrando historial', err); }
+  }
+}
 
 function renderHistorial(){
   const ubicSel = document.getElementById('hist-ubic-filter');
@@ -789,8 +863,11 @@ function showTab(id, el){
   el.classList.add('active');
 }
 
-poblarLoginOperadores();
-renderAll();
+(async function init(){
+  await cargarDesdeSupabase();
+  poblarLoginOperadores();
+  renderAll();
+})();
 </script>
 </body>
 </html>
