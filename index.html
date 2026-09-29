@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mantenimiento">
+<title>Mantenimiento de Equipos Móviles</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css">
+<style>:root{
+  --bg:#ffffff;
+  --bg2:#fff3c2;
+  --bg3:#ffdf66;
+  --text:#141414;
+  --text2:#4a4030;
+  --text3:#7d7250;
+  --border:rgba(20,20,20,0.20);
+  --border2:rgba(20,20,20,0.55);
+  --primary:#FFC400;
+  --primary-dark:#CC9900;
+  --primary-light:#FFE680;
+  --on-primary:#141414;
+  --ok-bg:#a8dd8c;--ok-text:#1b5e20;
+  --warn-bg:#ffb066;--warn-text:#7a3900;
+  --danger-bg:#ff8f8f;--danger-text:#8b0000;
+  --info-bg:#8ebef2;--info-text:#0d3b75;
+  --r:6px;--rl:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+.wrap{max-width:520px;margin:0 auto;padding:1rem}
+h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:1rem}
+.metric{background:var(--bg2);border-radius:var(--r);padding:.75rem}
+.metric-label{font-size:11px;color:var(--text2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.metric-value{font-size:18px;font-weight:500}
+.metric-value.warn{color:var(--warn-text)}
+.metric-value.info{color:var(--info-text)}
+.ubic-bar{display:flex;gap:6px;margin-bottom:1rem;overflow-x:auto;padding-bottom:4px}
+.ubic-btn{padding:7px 12px;font-size:12px;font-weight:500;border:0.5px solid var(--border2);border-radius:20px;background:none;cursor:pointer;white-space:nowrap;color:var(--text2)}
+.ubic-btn.active{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:1rem}
+.tab{padding:10px 2px;font-size:11px;font-weight:500;cursor:pointer;border:0.5px solid var(--border);background:none;color:var(--text2);border-radius:var(--r);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tab i{font-size:17px}
+.tab.active{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:.875rem;margin-bottom:.875rem}
+.card-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:3px}
+.field input,.field select,.field textarea{width:100%;font-size:15px;padding:10px 12px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);-webkit-appearance:none}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn{background:var(--primary);color:var(--on-primary);border:none;border-radius:var(--r);padding:13px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;letter-spacing:.02em}
+.btn:active{opacity:.85}
+.btn-sec{background:none;border:0.5px solid var(--primary);border-radius:var(--r);padding:11px;font-size:14px;cursor:pointer;color:var(--primary);width:100%;margin-top:4px;font-weight:500}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:var(--r);font-weight:700;white-space:nowrap}
+.app-header{background:var(--primary);margin:-1rem -1rem 1rem;padding:16px 1rem;border-bottom:4px solid var(--text)}
+.app-header h1{color:var(--on-primary);font-weight:700}
+.b-ok{background:var(--ok-bg);color:var(--ok-text)}.b-warn{background:var(--warn-bg);color:var(--warn-text)}.b-danger{background:var(--danger-bg);color:var(--danger-text)}.b-info{background:var(--info-bg);color:var(--info-text)}.b-gray{background:var(--bg2);color:var(--text2)}
+.toast{background:var(--ok-bg);color:var(--ok-text);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:.875rem;display:none;font-weight:600}
+.item-card{border:0.5px solid var(--border);border-radius:var(--r);padding:.75rem;margin-bottom:6px}
+.item-ref{font-size:10px;color:var(--text2)}
+.item-name{font-size:13px;font-weight:500;margin:2px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item-meta{font-size:11px;color:var(--text2);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sp-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.sp-item{font-size:10px;background:var(--bg2);border-radius:4px;padding:2px 7px;color:var(--text2)}
+.sp-item strong{color:var(--text)}
+.icon-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;padding:0 4px;line-height:1}
+.empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+.bar-row{margin-bottom:10px}
+.bar-row-top{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:3px}
+.bar-track{background:var(--bg2);border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{background:var(--primary);height:100%}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,20,20,0.45);z-index:100;align-items:flex-end;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--bg);border-radius:var(--rl) var(--rl) 0 0;padding:1rem;width:100%;max-width:520px;max-height:80vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.modal-head .card-title{margin-bottom:0}
+.modal-close{background:none;border:none;font-size:20px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 6px}
+.op-row{display:flex;justify-content:space-between;align-items:center;border:0.5px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:6px;font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="login-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--primary);padding:1rem">
+  <div style="background:var(--bg);border-radius:var(--rl);padding:1.5rem;max-width:340px;width:100%;box-shadow:0 6px 24px rgba(0,0,0,.25);border:3px solid var(--text)">
+    <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text)">Mantenimiento de Equipos Móviles</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Ingresá tu nombre y PIN para continuar.</p>
+    <div class="field"><label>Operador</label>
+      <select id="login-operador"><option value="">-- Seleccioná --</option></select>
+    </div>
+    <div class="field"><label>PIN</label><input type="password" id="login-pin" inputmode="numeric" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')intentarLogin()"></div>
+    <div id="login-error" style="color:var(--danger-text);font-size:12px;margin-bottom:8px;display:none">PIN incorrecto. Probá con 1234 si es tu primera vez.</div>
+    <button class="btn" onclick="intentarLogin()">Ingresar</button>
+  </div>
+</div>
+
+<div class="wrap" id="app-wrap" style="display:none">
+<div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v1.0</span></h1>
+  <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
+  <span>Sesión: <strong id="session-nombre" style="color:var(--text)"></strong></span>
+  <button onclick="cerrarSesion()" style="background:none;border:none;color:var(--text2);font-size:11px;text-decoration:underline;cursor:pointer;padding:0">Salir</button>
+</div>
+<div class="metrics">
+  <div class="metric"><div class="metric-label">Equipos activos</div><div class="metric-value" id="m-equipos">0</div></div>
+  <div class="metric"><div class="metric-label">Servicios registrados</div><div class="metric-value info" id="m-historial">0</div></div>
+  <div class="metric"><div class="metric-label">Alertas vencidas</div><div class="metric-value warn" id="m-vencidas">0</div></div>
+  <div class="metric"><div class="metric-label">Costo total</div><div class="metric-value" id="m-costo">$0</div></div>
+</div>
+<div class="ubic-bar" id="ubic-bar"></div>
+<datalist id="ubic-datalist"></datalist>
+<datalist id="operadores-datalist"></datalist>
+<div class="tabs">
+  <button class="tab active" onclick="showTab('maquinas',this)"><i class="ti ti-truck"></i>Máquinas</button>
+  <button class="tab" onclick="showTab('historial',this)"><i class="ti ti-history"></i>Historial</button>
+  <button class="tab" onclick="showTab('alertas',this)"><i class="ti ti-bell"></i>Alertas</button>
+  <button class="tab" onclick="showTab('reportes',this)"><i class="ti ti-chart-bar"></i>Reportes</button>
+</div>
+
+<div class="panel active" id="panel-maquinas">
+  <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+    <input type="search" placeholder="Buscar nombre, modelo o serie..." oninput="filterMaquinas(this.value)" id="maq-search" style="flex:1;font-size:15px;padding:10px 12px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+    <button class="btn-sec" onclick="toggleAltaEquipo()" style="white-space:nowrap;font-size:12px;padding:9px 12px;margin:0;flex-shrink:0">+ Equipo</button>
+  </div>
+  <div id="alta-equipo-box" style="display:none">
+    <div class="card" style="border-color:var(--info-text)">
+      <div class="card-title">Nuevo equipo</div>
+      <div class="field"><label>Nombre</label><input type="text" id="eq-nombre" placeholder="Camión F-350"></div>
+      <div class="row2">
+        <div class="field"><label>N° inventario</label><input type="text" id="eq-inv" placeholder="74"></div>
+        <div class="field"><label>Marca</label><input type="text" id="eq-marca" placeholder="Volvo"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Modelo</label><input type="text" id="eq-modeloM" placeholder="A30C"></div>
+        <div class="field"><label>Año</label><input type="number" id="eq-anio" placeholder="2022"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>N° de serie / chasis</label><input type="text" id="eq-serie" placeholder="SN-1234"></div>
+        <div class="field"><label>N° de motor</label><input type="text" id="eq-motor" placeholder="Opcional"></div>
+      </div>
+      <div class="field"><label>Ubicación</label><input type="text" id="eq-ubicacion" list="ubic-datalist" placeholder="Depósito norte"></div>
+      <div class="row2">
+        <div class="field"><label>Estado</label><select id="eq-estado"><option>Operativo</option><option>En mantenimiento</option><option>Fuera de servicio</option></select></div>
+        <div class="field"><label>Próximo mantenimiento</label><input type="date" id="eq-proximo"></div>
+      </div>
+      <button class="btn" onclick="crearEquipo()">+ Crear equipo</button>
+      <div class="toast" id="msg-equipo">&#10003; Equipo creado.</div>
+    </div>
+  </div>
+  <div id="maquinas-list"><div class="empty">Cargando...</div></div>
+</div>
+
+<div class="panel" id="panel-historial">
+  <div class="row2">
+    <div class="field"><label>Filtrar por ubicación</label><select id="hist-ubic-filter" onchange="renderHistorial()"></select></div>
+    <div class="field"><label>Filtrar por equipo</label><select id="hist-equipo-filter" onchange="renderHistorial()"></select></div>
+  </div>
+  <div id="historial-list"></div>
+</div>
+
+<div class="panel" id="panel-alertas">
+  <div class="field"><label>Filtrar por ubicación</label><select id="alertas-ubic-filter" onchange="renderAlertasHoras()"></select></div>
+  <p style="font-size:12px;color:var(--text3);margin:0 0 10px;">Por horas de uso (alerta a partir de las 250 hs sin service).</p>
+  <div id="alertas-horas-list"></div>
+</div>
+
+<div class="panel" id="panel-reportes">
+  <div class="card">
+    <div class="card-title">Combustible total por máquina (litros)</div>
+    <div id="reporte-combustible-maquina"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Combustible por hora (L/hs máquina)</div>
+    <div id="reporte-combustible-hora"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Horas máquina por ubicación</div>
+    <div id="reporte-horas-ubic"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Combustible cargado por ubicación (litros)</div>
+    <div id="reporte-combustible-ubic"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Services por ubicación</div>
+    <div id="reporte-service-ubic"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Reparaciones/correctivos por ubicación</div>
+    <div id="reporte-reparacion-ubic"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-operadores">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="card-title" style="margin-bottom:0">Operadores</div>
+      <button class="modal-close" onclick="toggleModalOperadores(false)">&times;</button>
+    </div>
+    <div class="row2" style="align-items:flex-end">
+      <div class="field" style="margin-bottom:0"><label>Nuevo operador</label><input type="text" id="nuevo-operador" placeholder="Nombre y apellido"></div>
+      <button class="btn" style="margin-top:0" onclick="agregarOperador()">Agregar</button>
+    </div>
+    <div id="operadores-lista" style="margin-top:14px"></div>
+    <div id="admin-pin-box" style="display:none;margin-top:16px;padding-top:14px;border-top:0.5px solid var(--border)">
+      <div class="card-title">Cambiar PIN (solo Amalia)</div>
+      <div class="row2" style="align-items:flex-end">
+        <div class="field" style="margin-bottom:0"><label>Operador</label><select id="pin-operador"></select></div>
+        <div class="field" style="margin-bottom:0"><label>Nuevo PIN</label><input type="text" id="pin-nuevo" inputmode="numeric" maxlength="6" placeholder="1234"></div>
+      </div>
+      <button class="btn-sec" style="margin-top:8px" onclick="guardarPin()">Guardar PIN</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const today = new Date('2026-07-21');
+const todayStr = today.toISOString().slice(0,10);
+let uid = 1000;
+let expandedIds = new Set();
+let formAbierto = {};
+let operadores = ['José (Pepe)','Pablo Ungaro','Fabián Vergara','Dario Maldonado','Gustavo Roldan','Alfredo Romero','Damian Caisso','Fabián Hawrylak','Carlos Obelar','Ricardo Bartolome','Monica Elizondo','Julio Rolleri','Amalia Maluendez','Jorge Onzari','Sergio Fonseca'];
+let operadoresPorUbicacion = {
+  'Berazategui - Buenos Aires': ['José (Pepe)','Pablo Ungaro','Fabián Vergara','Dario Maldonado'],
+  'Arenal - Ibicuy - Entre Rios': ['Gustavo Roldan'],
+  'Republica - Ibicuy - Entre Rios': ['Alfredo Romero'],
+  'Federal - Río Negro': ['Fabián Hawrylak'],
+  'OPEN DOOR': ['Carlos Obelar'],
+  'San Juan - San Juan': ['Ricardo Bartolome','Monica Elizondo'],
+  'Aldea Brasilera - Entre Rios': ['Damian Caisso'],
+  'Canal 15 - Castelli - BS.AS.': ['Julio Rolleri']
+};
+let operadorPins = {'Amalia Maluendez':'0000'};
+let currentOperador = null;
+const ADMIN_OPERADOR = 'Amalia Maluendez';
+
+function pinDe(op){ return operadorPins[op] || '1234'; }
+
+function poblarLoginOperadores(){
+  const sel = document.getElementById('login-operador');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Seleccioná --</option>' + operadores.map(o=>`<option value="${o}">${o}</option>`).join('');
+}
+
+function intentarLogin(){
+  const nombre = document.getElementById('login-operador').value;
+  const pin = document.getElementById('login-pin').value.trim();
+  const err = document.getElementById('login-error');
+  if(!nombre){ alert('Seleccioná tu nombre.'); return; }
+  if(pin !== pinDe(nombre)){ err.style.display='block'; return; }
+  err.style.display='none';
+  currentOperador = nombre;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-wrap').style.display='block';
+  document.getElementById('session-nombre').textContent = nombre;
+  document.getElementById('login-pin').value='';
+}
+
+function cerrarSesion(){
+  currentOperador = null;
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('app-wrap').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+function renderAdminPin(){
+  const box = document.getElementById('admin-pin-box');
+  if(!box) return;
+  if(currentOperador===ADMIN_OPERADOR){
+    box.style.display='block';
+    const sel = document.getElementById('pin-operador');
+    sel.innerHTML = operadores.map(o=>`<option value="${o}">${o}</option>`).join('');
+  } else {
+    box.style.display='none';
+  }
+}
+
+function guardarPin(){
+  const op = document.getElementById('pin-operador').value;
+  const pin = document.getElementById('pin-nuevo').value.trim();
+  if(!op || !pin){ alert('Elegí un operador e ingresá el nuevo PIN.'); return; }
+  operadorPins[op] = pin;
+  document.getElementById('pin-nuevo').value='';
+  alert('PIN actualizado para '+op+'.');
+}
+
+const UMBRAL_HORAS = 250;
+let horasAcumuladas = {};
+let horasDesdeService = {};
+
+function calcularHorasAcumuladas(){
+  const acumulado = {};
+  state.equipos.forEach(e=>{ acumulado[e.id] = 0; });
+  state.historial.forEach(h=>{
+    if(!(h.equipoId in acumulado)) return;
+    acumulado[h.equipoId] += Number(h.horas||0);
+  });
+  return acumulado;
+}
+
+function calcularHorasDesdeService(){
+  const porEquipo = {};
+  state.historial.forEach(h=>{ (porEquipo[h.equipoId]=porEquipo[h.equipoId]||[]).push(h); });
+  const resultado = {};
+  state.equipos.forEach(e=>{
+    const registros = (porEquipo[e.id]||[]).slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+    let acc = 0;
+    registros.forEach(h=>{
+      acc += Number(h.horas||0);
+      if(h.tipo==='Service') acc = 0;
+    });
+    resultado[e.id] = acc;
+  });
+  return resultado;
+}
+let currentUbic = 'Todas';
+let searchTerm = '';
+
+const state = {
+equipos: [{"id": 1, "invNro": "3", "nombre": "Camión Articulado Volvo A30C", "marca": "Volvo", "modeloM": "A30C", "anio": 1997, "serie": "A30CV2646", "motor": "", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-07-31"}, {"id": 2, "invNro": "6", "nombre": "Pala Cargadora XCMG ZL50G", "marca": "XCMG", "modeloM": "ZL50G", "anio": 2001, "serie": "10705033", "motor": "50705089772", "ubicacion": "OPEN DOOR", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-10"}, {"id": 3, "invNro": "7", "nombre": "Pala Cargadora Caterpillar 966D", "marca": "Caterpillar", "modeloM": "966 D", "anio": 2002, "serie": "99Y2858", "motor": "7N5456V", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-20"}, {"id": 4, "invNro": "9", "nombre": "Pala Cargadora Caterpillar 950F", "marca": "Caterpillar", "modeloM": "950 F", "anio": 2003, "serie": "2 LM 00772", "motor": "7JF00465", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-13"}, {"id": 5, "invNro": "11", "nombre": "Retroexcavadora Hyundai R210-LC7", "marca": "Hyundai", "modeloM": "R210-LC7", "anio": 2007, "serie": "60716308", "motor": "26411743", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-10-17"}, {"id": 6, "invNro": "15", "nombre": "Camión Articulado Volvo A40E", "marca": "Volvo", "modeloM": "A40E", "anio": 2011, "serie": "VCE0A40EL00013632", "motor": "D16*049196*", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-09-15"}, {"id": 7, "invNro": "16", "nombre": "Retroexcavadora Komatzu PC200-8", "marca": "Komatzu", "modeloM": "PC200-8", "anio": 2011, "serie": "B31296", "motor": "", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-14"}, {"id": 8, "invNro": "18", "nombre": "Cargadora Hyundai HL760-7A (001769)", "marca": "Hyundai", "modeloM": "HL760-7A", "anio": 2012, "serie": "HHIHLC04ECO 001769", "motor": "26596737", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-22"}, {"id": 9, "invNro": "20", "nombre": "Pala Cargadora SEM 650B", "marca": "SEM", "modeloM": "650B", "anio": 2013, "serie": "A1209024AH1209040", "motor": "C9129004835", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-12"}, {"id": 10, "invNro": "21", "nombre": "Retroexcavadora Hyundai R220LC-9S (003373)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2014, "serie": "HHKHZ614LD0003373", "motor": "73407417", "ubicacion": "Arenal - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-09-23"}, {"id": 11, "invNro": "22", "nombre": "Pala Cargadora Hyundai HL740-7A", "marca": "Hyundai", "modeloM": "HL740-7A", "anio": 2014, "serie": "HHKHZFO7HB0000624", "motor": "26584023", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-14"}, {"id": 12, "invNro": "23", "nombre": "Retroexcavadora Hyundai R220LC-9S (HG0009745)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2014, "serie": "HHZHZ614HG0009745", "motor": "73573345", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-04"}, {"id": 13, "invNro": "24", "nombre": "Excavadora Hyundai R220LC-9S (JF0009140)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2015, "serie": "HHKHZ614JF0009140", "motor": "76005336", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-30"}, {"id": 14, "invNro": "25", "nombre": "Excavadora Hyundai R220LC-9S (HG0009745/2016)", "marca": "Hyundai", "modeloM": "R220LC-9S", "anio": 2016, "serie": "HHZHZ614HG0009745", "motor": "76006660", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-04"}, {"id": 15, "invNro": "26", "nombre": "Pala Cargadora Hyundai HL760-9S", "marca": "Hyundai", "modeloM": "HL760-9S", "anio": 2016, "serie": "HHKHLL05JG000627", "motor": "76005646", "ubicacion": "Arenal - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 16, "invNro": "27", "nombre": "Pala Cargadora Hyundai HL760-9SB (CCH0000028)", "marca": "Hyundai", "modeloM": "HL760-9SB", "anio": 2017, "serie": "HBRH760CCH0000028", "motor": "", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-21"}, {"id": 17, "invNro": "28", "nombre": "Pala Cargadora Hyundai HL770-9S (AH0000711)", "marca": "Hyundai", "modeloM": "HL770-9S", "anio": 2017, "serie": "HHKHLK05AH0000711", "motor": "22242756", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-12"}, {"id": 18, "invNro": "29", "nombre": "Pala Cargadora Hyundai HL760-9SB (CCH0000031)", "marca": "Hyundai", "modeloM": "HL760-9SB", "anio": 2017, "serie": "HBRH760CCH0000031", "motor": "36569870", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-11"}, {"id": 19, "invNro": "32", "nombre": "Pala Cargadora SEM 655D", "marca": "SEM", "modeloM": "655D", "anio": 2017, "serie": "SEM00655KS5501965", "motor": "90020035", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-28"}, {"id": 20, "invNro": "35", "nombre": "Excavadora Hyundai R330LC-9S", "marca": "Hyundai", "modeloM": "R330LC-9S", "anio": 2018, "serie": "HHKHZ905CJ0003795", "motor": "22268158", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-07-09"}, {"id": 21, "invNro": "37", "nombre": "Pala Cargadora Hyundai HL770-9S (EJ0000816)", "marca": "Hyundai", "modeloM": "HL770-9S", "anio": 2019, "serie": "HHKHLK05EJ0000816", "motor": "22292625", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-15"}, {"id": 22, "invNro": "38", "nombre": "Pala Cargadora Hyundai HL760-9SB (CCH0000045)", "marca": "Hyundai", "modeloM": "HL760-9SB", "anio": 2019, "serie": "HBRH760CCH0000045", "motor": "36578884", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-25"}, {"id": 23, "invNro": "39", "nombre": "Camión Articulado Bell B30E #1", "marca": "Bell", "modeloM": "B30E", "anio": 2019, "serie": "AEBA830EV02108794", "motor": "926915-C-1147309", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-09-23"}, {"id": 24, "invNro": "40", "nombre": "Pala Cargadora SEM 669C", "marca": "SEM", "modeloM": "669C", "anio": 2017, "serie": "SEM00669CS6J00477", "motor": "C9175001083", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-24"}, {"id": 25, "invNro": "41", "nombre": "Pala Cargadora Hyundai HL775-9S", "marca": "Hyundai", "modeloM": "HL775-9S", "anio": 2020, "serie": "HHKHLK07KL0000051", "motor": "35354670", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-03"}, {"id": 26, "invNro": "43", "nombre": "Pala Cargadora SEM 655D (KS5509175)", "marca": "SEM", "modeloM": "655D", "anio": 2021, "serie": "SEM00655KS5509175", "motor": "90185755", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 27, "invNro": "44", "nombre": "Camión Articulado Volvo A40F", "marca": "Volvo", "modeloM": "A40F", "anio": 2012, "serie": "VCE0A40FC00051561", "motor": "D16*9098573*", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-09-23"}, {"id": 28, "invNro": "45", "nombre": "Pala Cargadora SANY SYL956H5", "marca": "SANY", "modeloM": "SYL956H5", "anio": 2022, "serie": "SL9563CB06518", "motor": "82458597", "ubicacion": "OPEN DOOR", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-12"}, {"id": 29, "invNro": "47", "nombre": "Pala Cargadora SEM 655D (ES5510787)", "marca": "SEM", "modeloM": "655D", "anio": 2023, "serie": "SEM00655ES5510787", "motor": "1222F007121", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-28"}, {"id": 30, "invNro": "48", "nombre": "Pala Cargadora XCMG ZL60KN", "marca": "XCMG", "modeloM": "ZL60KN", "anio": 2023, "serie": "XUG0600KEPCB09919", "motor": "1223D005634", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-16"}, {"id": 31, "invNro": "48b", "nombre": "Pala Cargadora Topway TM958", "marca": "Topway", "modeloM": "TM958", "anio": 2024, "serie": "231250688", "motor": "1223K013985", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-05"}, {"id": 32, "invNro": "49", "nombre": "Pala Cargadora Topway TM958", "marca": "Topway", "modeloM": "TM958", "anio": 2024, "serie": "231250689", "motor": "1223K013986", "ubicacion": "Arenal - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-12"}, {"id": 33, "invNro": "51", "nombre": "Camión Articulado Bell B30E #2", "marca": "Bell", "modeloM": "B30E", "anio": 2024, "serie": "AEBA830EV03511622", "motor": "926.915 U1 466.067", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-08-25"}, {"id": 34, "invNro": "53", "nombre": "Mini Cargadora Topway TM60L", "marca": "Topway", "modeloM": "TM60L", "anio": 2025, "serie": "240476", "motor": "24198909", "ubicacion": "Federal - Río Negro", "tipo": "Mini cargadoras", "estado": "Operativo", "proximo": "2026-08-07"}, {"id": 35, "invNro": "54", "nombre": "Retroexcavadora Topway TM360.8", "marca": "Topway", "modeloM": "TM360.8", "anio": 2025, "serie": "36B002AJ", "motor": "93373418", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-25"}, {"id": 36, "invNro": "55", "nombre": "Retroexcavadora Topway TM520.8", "marca": "Topway", "modeloM": "TM520.8", "anio": 2025, "serie": "52B0020J", "motor": "71143257", "ubicacion": "Aldea Brasilera - Entre Rios", "tipo": "Retroexcavadoras y excavadoras", "estado": "Operativo", "proximo": "2026-08-22"}, {"id": 37, "invNro": "56", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2025, "serie": "241250738", "motor": "1224J013011", "ubicacion": "San Juan - San Juan", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-15"}, {"id": 38, "invNro": "58", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2025, "serie": "241250735", "motor": "1224S012553", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-09-21"}, {"id": 39, "invNro": "59", "nombre": "Pala Cargadora Topway TM968", "marca": "Topway", "modeloM": "TM968", "anio": 2025, "serie": "241250731", "motor": "1224S012548", "ubicacion": "Canal 15 - Castelli - BS.AS.", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-25"}, {"id": 40, "invNro": "60", "nombre": "Pala Cargadora Topway TM968", "marca": "Topway", "modeloM": "TM968", "anio": 2025, "serie": "241250732", "motor": "1224S012549", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-07"}, {"id": 41, "invNro": "61", "nombre": "Autoelevador Topway CPCD35/4WD", "marca": "Topway", "modeloM": "CPCD35/4WD", "anio": 2025, "serie": "24111045", "motor": "24148977", "ubicacion": "San Juan - San Juan", "tipo": "Autoelevadores", "estado": "Operativo", "proximo": "2026-09-13"}, {"id": 42, "invNro": "62", "nombre": "Autoelevador Topway CPCD25", "marca": "Topway", "modeloM": "CPCD25", "anio": 2025, "serie": "25030271", "motor": "25071074", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Autoelevadores", "estado": "Operativo", "proximo": "2026-09-04"}, {"id": 43, "invNro": "63", "nombre": "Manitou Topway TMT4007", "marca": "Topway", "modeloM": "TMT4007", "anio": 2025, "serie": "TMT4007-4K2098", "motor": "9342466", "ubicacion": "Federal - Río Negro", "tipo": "Autoelevadores", "estado": "Operativo", "proximo": "2026-09-27"}, {"id": 44, "invNro": "68", "nombre": "Mini Cargadora Oruga Topway TM30Y", "marca": "Topway", "modeloM": "TM30Y", "anio": 2025, "serie": "TMQ3032N6850", "motor": "N6850", "ubicacion": "Federal - Río Negro", "tipo": "Mini cargadoras", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 45, "invNro": "69", "nombre": "Mini Cargadora Oruga Topway TM30Y", "marca": "Topway", "modeloM": "TM30Y", "anio": 2025, "serie": "TMQ3031P4585", "motor": "P4585", "ubicacion": "Federal - Río Negro", "tipo": "Mini cargadoras", "estado": "Operativo", "proximo": "2026-10-16"}, {"id": 46, "invNro": "70", "nombre": "Camión Articulado Bell B30E #3", "marca": "Bell", "modeloM": "B30E", "anio": 2026, "serie": "AEBA830EH03612227", "motor": "926.915 U1 534.874", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Camiones fuera de ruta", "estado": "Operativo", "proximo": "2026-10-18"}, {"id": 47, "invNro": "71", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2026, "serie": "260150770", "motor": "1225K017676", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-07-06"}, {"id": 48, "invNro": "72", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2026, "serie": "260150771", "motor": "1225K017675", "ubicacion": "Republica - Ibicuy - Entre Rios", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-10-16"}, {"id": 49, "invNro": "73", "nombre": "Pala Cargadora Topway TM979", "marca": "Topway", "modeloM": "TM979", "anio": 2026, "serie": "260150772", "motor": "1225K017677", "ubicacion": "Federal - Río Negro", "tipo": "Palas cargadoras", "estado": "Operativo", "proximo": "2026-08-14"}, {"id": 50, "invNro": "17", "nombre": "Semirremolque Furtan 8B9STF1373BFYT067", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2017, "serie": "8B9STF1373BFYT067", "motor": "", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-07-26"}, {"id": 51, "invNro": "18", "nombre": "Semirremolque Furtan 8B9STF1373BFYT068", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2017, "serie": "8B9STF1373BFYT068", "motor": "", "ubicacion": "Berazategui - Buenos Aires", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-08-22"}, {"id": 52, "invNro": "33", "nombre": "Semirremolque Furtan 8B9STF1323BFYT136", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2021, "serie": "8B9STF1323BFYT136", "motor": "", "ubicacion": "OPEN DOOR", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-10-19"}, {"id": 53, "invNro": "34", "nombre": "Semirremolque Furtan 8B9STF1323BFYT137", "marca": "Furtan", "modeloM": "Semi Tolva", "anio": 2021, "serie": "8B9STF1323BFYT137", "motor": "", "ubicacion": "OPEN DOOR", "tipo": "Semirremolques", "estado": "Operativo", "proximo": "2026-10-10"}, {"id": 54, "invNro": "44", "nombre": "Razer Tail Superior 48\"", "marca": "Superior", "modeloM": "48 Razertail", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}, {"id": 55, "invNro": "45", "nombre": "Stacker Superior 42\"x60", "marca": "Superior", "modeloM": "42x60 PRSC", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}, {"id": 56, "invNro": "46", "nombre": "SPS Custom FS-100 8", "marca": "Custom", "modeloM": "FS-100", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}, {"id": 57, "invNro": "", "nombre": "SPS Cutom FS-100 7", "marca": "Custom", "modeloM": "FS 100", "anio": 2026, "serie": "", "motor": "", "ubicacion": "Federal - Río Negro", "tipo": "Otros equipos", "estado": "Operativo", "proximo": "2026-09-17"}],
+historial: [
+  {id:1, equipoId:1, fecha:'2026-02-14', tipo:'Service', horas:180, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Ana López', costo:180, notas:''},
+  {id:2, equipoId:6, fecha:'2026-03-02', tipo:'Reparación / Correctivo', horas:220, aceiteFiltros:'', repuestos:'Manguera hidráulica', litros:'', realizadoPor:'Juan Pérez', costo:420, notas:''},
+  {id:3, equipoId:12, fecha:'2026-03-20', tipo:'Service', horas:95, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Ana López', costo:90, notas:''},
+  {id:4, equipoId:20, fecha:'2026-04-11', tipo:'Service', horas:150, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Marcos Díaz', costo:150, notas:''},
+  {id:5, equipoId:9, fecha:'2026-05-06', tipo:'Reparación / Correctivo', horas:280, aceiteFiltros:'', repuestos:'Cilindro de dirección', litros:'', realizadoPor:'Juan Pérez', costo:610, notas:''},
+  {id:6, equipoId:29, fecha:'2026-05-28', tipo:'Service', horas:60, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Marcos Díaz', costo:200, notas:''},
+  {id:7, equipoId:35, fecha:'2026-06-15', tipo:'Reparación / Correctivo', horas:140, aceiteFiltros:'', repuestos:'Tren delantero completo', litros:'', realizadoPor:'Ana López', costo:350, notas:''},
+  {id:8, equipoId:47, fecha:'2026-07-01', tipo:'Service', horas:35, aceiteFiltros:'Sí', repuestos:'', litros:'', realizadoPor:'Juan Pérez', costo:80, notas:''}
+]
+};
+uid = Math.max(...state.equipos.map(e=>e.id), ...state.historial.map(h=>h.id)) + 1;
+
+function tipoDe(nombre){
+  const n = nombre.toLowerCase();
+  if(n.includes('retroexcavadora') || n.includes('excavadora')) return 'Retroexcavadoras y excavadoras';
+  if(n.includes('mini cargadora')) return 'Mini cargadoras';
+  if(n.includes('autoelevador') || n.includes('manitou')) return 'Autoelevadores';
+  if(n.includes('semirremolque')) return 'Semirremolques';
+  if(n.includes('camión articulado') || n.includes('camion articulado')) return 'Camiones fuera de ruta';
+  if(n.includes('cargadora')) return 'Palas cargadoras';
+  return 'Otros equipos';
+}
+
+function diasHasta(fecha){ const d=new Date(fecha); return Math.round((d-today)/86400000); }
+function subtitulo(e){
+  return [((e.marca||'')+' '+(e.modeloM||'')).trim(), e.anio, e.serie?('SN '+e.serie):null].filter(Boolean).join(' · ');
+}
+function dotColorFor(dias){ return dias<0 ? 'var(--danger-text)' : (dias<=14 ? 'var(--warn-text)' : '#2d5a0e'); }
+
+function badgeEstado(estado){
+  if(estado==='Operativo') return '<span class="badge b-ok">Operativo</span>';
+  if(estado==='En mantenimiento') return '<span class="badge b-warn">En mantenimiento</span>';
+  return '<span class="badge b-danger">Fuera de servicio</span>';
+}
+
+function showToast(id){ const el=document.getElementById(id); if(!el) return; el.style.display='block'; setTimeout(()=>el.style.display='none',2500); }
+
+function renderUbicBar(){
+  const ubicaciones=[...new Set(state.equipos.map(e=>e.ubicacion))].sort((a,b)=>a.localeCompare(b,'es'));
+  const el=document.getElementById('ubic-bar');
+  el.innerHTML = ['Todas',...ubicaciones].map((u,i)=>`<button class="ubic-btn ${u===currentUbic?'active':''}" onclick="setUbicIdx(${i})">${u}</button>`).join('');
+  window._ubicOpciones = ['Todas',...ubicaciones];
+  const dl=document.getElementById('ubic-datalist');
+  if(dl) dl.innerHTML = ubicaciones.map(u=>`<option value="${u}">`).join('');
+}
+function setUbic(u){ currentUbic=u; renderUbicBar(); renderMaquinas(); }
+function setUbicIdx(i){ setUbic(window._ubicOpciones[i]); }
+function filterMaquinas(v){ searchTerm=v.toLowerCase(); renderMaquinas(); }
+
+function equiposFiltrados(){
+  return state.equipos.filter(e=>{
+    if(currentUbic!=='Todas' && e.ubicacion!==currentUbic) return false;
+    if(searchTerm){
+      const hay = (e.nombre+' '+(e.marca||'')+' '+(e.modeloM||'')+' '+(e.serie||'')+' '+(e.invNro||'')+' '+e.ubicacion).toLowerCase();
+      if(!hay.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+}
+
+function filaServicio(h, conEquipo){
+  const eqNombre = conEquipo ? ((state.equipos.find(e=>e.id===h.equipoId)||{}).nombre || 'Equipo eliminado') : '';
+  const repuestosChip = h.repuestos ? `<div class="sp-item">Repuestos: <strong>${h.repuestos}</strong></div>` : '';
+  const litrosChip = h.litros ? `<div class="sp-item">Combustible: <strong>${h.litros} L</strong></div>` : '';
+  const costoChip = h.costo ? `<div class="sp-item">Costo: <strong>$${h.costo.toLocaleString()}</strong></div>` : '';
+  const aceiteChip = h.aceiteFiltros ? `<div class="sp-item">Aceite/filtros: <strong>${h.aceiteFiltros}</strong></div>` : '';
+  return `<div class="item-card">
+    <div class="item-meta" style="justify-content:space-between">
+      <span>${h.fecha} · <strong>${h.tipo}</strong>${conEquipo? ' · '+eqNombre:''}</span>
+      <button class="icon-del" onclick="delHistorial(${h.id})" aria-label="Eliminar">&times;</button>
+    </div>
+    <div class="sp-wrap">
+      <div class="sp-item">Horas: <strong>${h.horas?h.horas.toLocaleString():'—'}</strong></div>
+      ${aceiteChip}
+      ${costoChip}
+      <div class="sp-item">Por: <strong>${h.realizadoPor}</strong></div>
+      ${repuestosChip}
+      ${litrosChip}
+    </div>
+    ${h.notas?`<div style="font-size:11px;color:var(--text2);margin-top:4px">${h.notas}</div>`:''}
+  </div>`;
+}
+
+function cardMaquina(e){
+  const isOpen = expandedIds.has(e.id);
+  const misServicios = state.historial.filter(h=>h.equipoId===e.id).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const dias = diasHasta(e.proximo);
+  const dot = dotColorFor(dias);
+  let body='';
+  if(isOpen){
+    const lista = misServicios.length ? misServicios.map(h=>filaServicio(h,false)).join('') : '<div class="empty">Sin services ni reparaciones.</div>';
+    const fichaHtml = `<div class="card" style="background:var(--bg2)">
+        <div class="card-title">Ficha del equipo</div>
+        <div class="row2">
+          <div class="field"><label>N° inventario</label><input type="text" value="${e.invNro||''}" onchange="updateCampo(${e.id},'invNro',this.value)"></div>
+          <div class="field"><label>Marca</label><input type="text" value="${e.marca||''}" onchange="updateCampo(${e.id},'marca',this.value)"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Modelo</label><input type="text" value="${e.modeloM||''}" onchange="updateCampo(${e.id},'modeloM',this.value)"></div>
+          <div class="field"><label>Año</label><input type="number" value="${e.anio||''}" onchange="updateCampo(${e.id},'anio',this.value)"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>N° de serie / chasis</label><input type="text" value="${e.serie||''}" onchange="updateCampo(${e.id},'serie',this.value)"></div>
+          <div class="field"><label>N° de motor</label><input type="text" value="${e.motor||''}" onchange="updateCampo(${e.id},'motor',this.value)"></div>
+        </div>
+        <div class="field"><label>Ubicación</label><input type="text" list="ubic-datalist" value="${e.ubicacion}" onchange="updateCampo(${e.id},'ubicacion',this.value)"></div>
+        <div class="field"><label>Estado</label><select onchange="updateCampo(${e.id},'estado',this.value)">
+          <option ${e.estado==='Operativo'?'selected':''}>Operativo</option>
+          <option ${e.estado==='En mantenimiento'?'selected':''}>En mantenimiento</option>
+          <option ${e.estado==='Fuera de servicio'?'selected':''}>Fuera de servicio</option>
+        </select></div>
+        ${e.estado!=='Operativo' ? `<div class="field"><label>Motivo</label><input type="text" value="${e.motivo||''}" onchange="updateCampo(${e.id},'motivo',this.value)" placeholder="Ej: rotura de motor, en taller..."></div>` : ''}
+      </div>`;
+    body = `<div style="margin-top:10px;border-top:0.5px solid var(--border);padding-top:10px">
+      ${formAbierto[e.id] ? '' : fichaHtml}
+      ${lista}
+      <div class="row2" style="grid-template-columns:repeat(3,1fr);gap:6px">
+        <button class="btn-sec" style="display:flex;flex-direction:column;align-items:center;gap:3px;margin:0;font-size:10px;padding:9px 3px;line-height:1.15;border-width:2px;border-color:var(--info-text);color:${formAbierto[e.id]==='combustible'?'#fff':'var(--info-text)'};${formAbierto[e.id]==='combustible'?'background:var(--info-text)':''}" onclick="elegirForm(${e.id},'combustible')"><i class="ti ti-gas-station" style="font-size:19px"></i>Combustible</button>
+        <button class="btn-sec" style="display:flex;flex-direction:column;align-items:center;gap:3px;margin:0;font-size:10px;padding:9px 3px;line-height:1.15;border-width:2px;border-color:var(--ok-text);color:${formAbierto[e.id]==='service'?'#fff':'var(--ok-text)'};${formAbierto[e.id]==='service'?'background:var(--ok-text)':''}" onclick="elegirForm(${e.id},'service')"><i class="ti ti-settings" style="font-size:19px"></i>Service</button>
+        <button class="btn-sec" style="display:flex;flex-direction:column;align-items:center;gap:3px;margin:0;font-size:10px;padding:9px 3px;line-height:1.15;border-width:2px;border-color:var(--warn-text);color:${formAbierto[e.id]==='reparacion'?'#fff':'var(--warn-text)'};${formAbierto[e.id]==='reparacion'?'background:var(--warn-text)':''}" onclick="elegirForm(${e.id},'reparacion')"><i class="ti ti-tools" style="font-size:19px"></i>Reparación</button>
+      </div>
+      ${formAbierto[e.id] ? formularioTipo(e.id, formAbierto[e.id]) : ''}
+    </div>`;
+  }
+  return `<div class="item-card">
+    <div onclick="toggleEquipo(${e.id})" style="cursor:pointer">
+      <div class="item-meta" style="justify-content:space-between">
+        <span class="badge b-gray">${e.tipo}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          ${e.invNro ? `<span style="font-size:22px;font-weight:700;color:var(--primary-dark);line-height:1">#${e.invNro}</span>` : ''}
+          <button class="icon-del" onclick="event.stopPropagation();delEquipo(${e.id})" aria-label="Eliminar equipo">&times;</button>
+          <i class="ti ti-chevron-down" style="transition:transform .15s;transform:rotate(${isOpen?180:0}deg)"></i>
+        </span>
+      </div>
+      <div class="item-name">${e.nombre}</div>
+      <div class="item-ref">${subtitulo(e)}</div>
+      ${(e.estado!=='Operativo' && e.motivo) ? `<div class="item-ref" style="color:var(--danger-text);font-weight:600;margin-top:2px"><i class="ti ti-alert-triangle" style="vertical-align:middle;margin-right:3px"></i>${e.motivo}</div>` : ''}
+      <div class="item-meta" style="margin-top:6px">
+        ${badgeEstado(e.estado)}
+        <span style="display:flex;align-items:center;gap:4px" onclick="event.stopPropagation()">
+          <span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>
+          <input type="date" value="${e.proximo}" onchange="updateCampo(${e.id},'proximo',this.value)" style="width:118px;padding:3px 6px;font-size:11px;height:auto;border:0.5px solid var(--border2);border-radius:4px">
+        </span>
+        <span>${e.ubicacion}</span>
+        <span>${misServicios.length} servicio${misServicios.length===1?'':'s'}</span>
+        <span class="badge ${(horasDesdeService[e.id]||0)>=UMBRAL_HORAS?'b-danger':(horasDesdeService[e.id]||0)>=UMBRAL_HORAS-50?'b-warn':'b-gray'}" title="Horas totales acumuladas: ${(horasAcumuladas[e.id]||0).toLocaleString()}">${(horasAcumuladas[e.id]||0).toLocaleString()} hs</span>
+      </div>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function renderMaquinas(){
+  const cont = document.getElementById('maquinas-list');
+  const lista = equiposFiltrados();
+  cont.innerHTML = lista.length ? lista.map(e=>cardMaquina(e)).join('') : '<div class="empty">No se encontraron equipos.</div>';
+}
+
+const TIPO_CONFIG = {
+  combustible: {tipoLabel:'Carga de combustible', extra:'litros', bg:'var(--info-bg)', text:'var(--info-text)'},
+  service: {tipoLabel:'Service', extra:'aceite', bg:'var(--ok-bg)', text:'var(--ok-text)'},
+  reparacion: {tipoLabel:'Reparación / Correctivo', extra:'repuestos', bg:'var(--warn-bg)', text:'var(--warn-text)'}
+};
+
+function elegirForm(id, key){
+  formAbierto[id] = (formAbierto[id]===key) ? null : key;
+  renderMaquinas();
+}
+
+function formularioTipo(id, key){
+  const cfg = TIPO_CONFIG[key];
+  const e = state.equipos.find(x=>x.id===id);
+  const opsUbic = (e && operadoresPorUbicacion[e.ubicacion] && operadoresPorUbicacion[e.ubicacion].length) ? operadoresPorUbicacion[e.ubicacion] : operadores;
+  const datalistHtml = `<datalist id="op-datalist-${id}">${opsUbic.map(o=>`<option value="${o}">`).join('')}</datalist>`;
+  const extraHtml = cfg.extra==='aceite'
+    ? `<div class="field"><label>Cambio aceite y filtros</label><select id="sf-extra-${id}"><option>No</option><option>Sí</option></select></div>`
+    : cfg.extra==='litros'
+    ? `<div class="field"><label>Litros cargados</label><input type="number" id="sf-extra-${id}" min="0" placeholder="120"></div>`
+    : `<div class="field"><label>Repuestos utilizados</label><input type="text" id="sf-extra-${id}" placeholder="Filtro, manguera..."></div>`;
+  return `<div class="card" style="background:${cfg.bg};border-color:${cfg.text};border-width:2px;margin-top:8px">
+    <div class="card-title" style="color:${cfg.text}">Nuevo: ${cfg.tipoLabel}</div>
+    <div class="row2">
+      <div class="field"><label>Fecha</label><input type="date" id="sf-fecha-${id}" value="${todayStr}"></div>
+      <div class="field"><label>Horas máquina</label><input type="number" id="sf-horas-${id}" min="0" placeholder="50"></div>
+    </div>
+    ${extraHtml}
+    ${datalistHtml}
+    <div class="field"><label>Realizado por</label><input type="text" id="sf-realizadopor-${id}" list="op-datalist-${id}" placeholder="Juan Pérez"></div>
+    <div class="field"><label>Notas</label><input type="text" id="sf-notas-${id}" placeholder="Detalle opcional"></div>
+    <button class="btn" style="background:${cfg.text};color:#fff" onclick="addServicioInline(${id}, '${key}')">+ Registrar</button>
+    <div class="toast" id="msg-servicio-${id}">&#10003; Registrado.</div>
+  </div>`;
+}
+
+function toggleEquipo(id){
+  if(expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+  renderMaquinas();
+}
+
+function updateCampo(id, campo, val){
+  const e = state.equipos.find(x=>x.id===id);
+  if(!e) return;
+  e[campo] = (campo==='anio') ? (Number(val)||val) : val;
+  renderAll();
+}
+
+function addServicioInline(id, key){
+  const cfg = TIPO_CONFIG[key];
+  const fecha = document.getElementById('sf-fecha-'+id).value;
+  const horas = Number(document.getElementById('sf-horas-'+id).value) || 0;
+  const extraVal = document.getElementById('sf-extra-'+id).value;
+  const realizadoPor = document.getElementById('sf-realizadopor-'+id).value.trim();
+  const notas = document.getElementById('sf-notas-'+id).value;
+  if(!fecha || !realizadoPor){
+    alert('Completá al menos la fecha y quién lo realizó.');
+    return;
+  }
+  const entry = {id:uid++, equipoId:id, fecha, tipo:cfg.tipoLabel, horas, aceiteFiltros:'', repuestos:'', litros:'', realizadoPor, costo:0, notas};
+  if(cfg.extra==='aceite') entry.aceiteFiltros = extraVal;
+  else if(cfg.extra==='litros') entry.litros = Number(extraVal)||0;
+  else entry.repuestos = extraVal;
+  state.historial.push(entry);
+  if(!operadores.includes(realizadoPor)) operadores.push(realizadoPor);
+  const eq = state.equipos.find(x=>x.id===id);
+  if(eq){
+    if(!operadoresPorUbicacion[eq.ubicacion]) operadoresPorUbicacion[eq.ubicacion] = [];
+    if(!operadoresPorUbicacion[eq.ubicacion].includes(realizadoPor)) operadoresPorUbicacion[eq.ubicacion].push(realizadoPor);
+  }
+  expandedIds.add(id);
+  renderAll();
+  showToast('msg-servicio-'+id);
+}
+
+function renderOperadoresDatalist(){
+  const dl = document.getElementById('operadores-datalist');
+  if(dl) dl.innerHTML = operadores.map(o=>`<option value="${o}">`).join('');
+}
+
+function toggleModalOperadores(show){
+  const modal = document.getElementById('modal-operadores');
+  if(show){
+    renderOperadoresLista();
+    renderAdminPin();
+    modal.classList.add('active');
+  } else {
+    modal.classList.remove('active');
+  }
+}
+
+function renderOperadoresLista(){
+  const cont = document.getElementById('operadores-lista');
+  if(!operadores.length){ cont.innerHTML='<div class="empty">Sin operadores cargados.</div>'; return; }
+  cont.innerHTML = operadores.map((o,i)=>`<div class="op-row">
+    <span>${o}</span>
+    <button class="icon-del" onclick="delOperador(${i})"><i class="ti ti-trash"></i></button>
+  </div>`).join('');
+}
+
+function agregarOperador(){
+  const input = document.getElementById('nuevo-operador');
+  const nombre = input.value.trim();
+  if(!nombre) return;
+  if(!operadores.includes(nombre)) operadores.push(nombre);
+  input.value = '';
+  renderOperadoresLista();
+  renderOperadoresDatalist();
+  poblarLoginOperadores();
+  renderAdminPin();
+}
+
+function delOperador(i){
+  operadores.splice(i,1);
+  renderOperadoresLista();
+  renderOperadoresDatalist();
+  poblarLoginOperadores();
+  renderAdminPin();
+}
+
+function toggleAltaEquipo(){
+  const box = document.getElementById('alta-equipo-box');
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+function crearEquipo(){
+  const nombre = document.getElementById('eq-nombre').value;
+  const invNro = document.getElementById('eq-inv').value;
+  const marca = document.getElementById('eq-marca').value;
+  const modeloM = document.getElementById('eq-modeloM').value;
+  const anio = Number(document.getElementById('eq-anio').value) || '';
+  const serie = document.getElementById('eq-serie').value;
+  const motor = document.getElementById('eq-motor').value;
+  const ubicacion = document.getElementById('eq-ubicacion').value;
+  const estado = document.getElementById('eq-estado').value;
+  const proximo = document.getElementById('eq-proximo').value;
+  if(!nombre || !ubicacion || !proximo) return;
+  state.equipos.push({id:uid++, invNro, nombre, marca, modeloM, anio, serie, motor, ubicacion, tipo:tipoDe(nombre), estado, proximo});
+  ['eq-nombre','eq-inv','eq-marca','eq-modeloM','eq-anio','eq-serie','eq-motor','eq-ubicacion','eq-proximo'].forEach(i=>document.getElementById(i).value='');
+  renderAll();
+  showToast('msg-equipo');
+}
+
+function delEquipo(id){
+  state.equipos = state.equipos.filter(e=>e.id!==id);
+  state.historial = state.historial.filter(h=>h.equipoId!==id);
+  expandedIds.delete(id);
+  delete formAbierto[id];
+  renderAll();
+}
+function delHistorial(id){ state.historial = state.historial.filter(h=>h.id!==id); renderAll(); }
+
+function renderHistorial(){
+  const ubicSel = document.getElementById('hist-ubic-filter');
+  const eqSel = document.getElementById('hist-equipo-filter');
+
+  if(ubicSel){
+    const prevUbic = ubicSel.value;
+    const ubicaciones = [...new Set(state.equipos.map(e=>e.ubicacion))].sort((a,b)=>a.localeCompare(b,'es'));
+    ubicSel.innerHTML = ['<option value="todas">Todas las ubicaciones</option>']
+      .concat(ubicaciones.map(u=>`<option value="${u}">${u}</option>`)).join('');
+    ubicSel.value = [...ubicSel.options].some(o=>o.value===prevUbic) ? prevUbic : 'todas';
+  }
+  const ubicFiltro = ubicSel ? ubicSel.value : 'todas';
+
+  if(eqSel){
+    const prevEq = eqSel.value;
+    const equiposScope = ubicFiltro==='todas' ? state.equipos : state.equipos.filter(e=>e.ubicacion===ubicFiltro);
+    eqSel.innerHTML = ['<option value="todas">Todas las máquinas</option>']
+      .concat(equiposScope.map(e=>`<option value="${e.id}">${e.nombre}</option>`)).join('');
+    eqSel.value = [...eqSel.options].some(o=>o.value===prevEq) ? prevEq : 'todas';
+  }
+  const eqFiltro = eqSel ? eqSel.value : 'todas';
+
+  const cont = document.getElementById('historial-list');
+  const lista = state.historial.filter(h=>{
+    const equipo = state.equipos.find(e=>e.id===h.equipoId);
+    if(ubicFiltro!=='todas' && (!equipo || equipo.ubicacion!==ubicFiltro)) return false;
+    if(eqFiltro!=='todas' && String(h.equipoId)!==String(eqFiltro)) return false;
+    return true;
+  });
+  const ordenado = [...lista].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  cont.innerHTML = ordenado.length ? ordenado.map(h=>filaServicio(h,true)).join('') : '<div class="empty">Sin servicios registrados.</div>';
+}
+
+function renderAlertas(){
+  renderAlertasHoras();
+}
+
+function renderAlertasHoras(){
+  const ubicSel = document.getElementById('alertas-ubic-filter');
+  if(ubicSel){
+    const prevUbic = ubicSel.value;
+    const ubicaciones = [...new Set(state.equipos.map(e=>e.ubicacion))].sort((a,b)=>a.localeCompare(b,'es'));
+    ubicSel.innerHTML = ['<option value="todas">Todas las ubicaciones</option>']
+      .concat(ubicaciones.map(u=>`<option value="${u}">${u}</option>`)).join('');
+    ubicSel.value = [...ubicSel.options].some(o=>o.value===prevUbic) ? prevUbic : 'todas';
+  }
+  const ubicFiltro = ubicSel ? ubicSel.value : 'todas';
+
+  const cont = document.getElementById('alertas-horas-list');
+  const equiposScope = ubicFiltro==='todas' ? state.equipos : state.equipos.filter(e=>e.ubicacion===ubicFiltro);
+  const ordenado = [...equiposScope].sort((a,b)=>(horasDesdeService[b.id]||0)-(horasDesdeService[a.id]||0));
+  cont.innerHTML = ordenado.map(e=>{
+    const hs = horasDesdeService[e.id]||0;
+    let cls;
+    if(hs>=UMBRAL_HORAS) cls='b-danger';
+    else if(hs>=UMBRAL_HORAS-50) cls='b-warn';
+    else cls='b-ok';
+    return `<div class="item-card">
+      <div class="item-meta" style="justify-content:space-between">
+        <span class="item-name" style="margin:0">${e.nombre}</span>
+        <span class="badge ${cls}">${hs.toLocaleString()} hs sin service</span>
+      </div>
+      <div class="item-ref">${e.ubicacion} · total acumulado: ${(horasAcumuladas[e.id]||0).toLocaleString()} hs</div>
+    </div>`;
+  }).join('');
+}
+
+function renderMetrics(){
+  document.getElementById('m-equipos').textContent = state.equipos.length;
+  document.getElementById('m-historial').textContent = state.historial.length;
+  document.getElementById('m-vencidas').textContent = state.equipos.filter(e=>(horasDesdeService[e.id]||0)>=UMBRAL_HORAS).length;
+  const costoTotal = state.historial.reduce((s,h)=>s+Number(h.costo),0);
+  document.getElementById('m-costo').textContent = '$'+costoTotal.toLocaleString();
+}
+
+function barList(containerId, data){
+  const el = document.getElementById(containerId);
+  if(!data.length){ el.innerHTML='<div class="empty">Sin datos.</div>'; return; }
+  const max = Math.max(...data.map(d=>d.value));
+  el.innerHTML = data.map(d=>`<div class="bar-row">
+    <div class="bar-row-top"><span>${d.label}</span><span style="font-weight:600;color:var(--text)">${d.display!==undefined?d.display:d.value}</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${max?Math.round(d.value/max*100):0}%"></div></div>
+  </div>`).join('');
+}
+
+function renderReportes(){
+  renderReporteCombustiblePorMaquina();
+  renderReportePorUbicacion();
+}
+
+function renderReporteCombustiblePorMaquina(){
+  const porMaquina = state.equipos.map(e=>{
+    const entradas = state.historial.filter(h=>h.equipoId===e.id);
+    const litros = entradas.filter(h=>h.tipo==='Carga de combustible').reduce((s,h)=>s+Number(h.litros||0),0);
+    const horas = horasAcumuladas[e.id]||0;
+    return { nombre:e.nombre, litros, horas, litrosPorHora: horas>0 ? litros/horas : 0 };
+  });
+
+  const conCombustible = porMaquina.filter(x=>x.litros>0);
+  const litrosOrd = [...conCombustible].sort((a,b)=>b.litros-a.litros);
+  barList('reporte-combustible-maquina', litrosOrd.map(x=>({label:x.nombre, value:x.litros, display:x.litros.toLocaleString()+' L'})));
+
+  const porHoraOrd = conCombustible.filter(x=>x.horas>0).sort((a,b)=>b.litrosPorHora-a.litrosPorHora);
+  barList('reporte-combustible-hora', porHoraOrd.map(x=>({label:x.nombre, value:x.litrosPorHora, display:x.litrosPorHora.toFixed(2)+' L/hs'})));
+}
+
+function renderReportePorUbicacion(){
+  const ubicaciones = [...new Set(state.equipos.map(e=>e.ubicacion))].sort((a,b)=>a.localeCompare(b,'es'));
+  const porUbic = ubicaciones.map(u=>{
+    const idsEquipos = state.equipos.filter(e=>e.ubicacion===u).map(e=>e.id);
+    const entradas = state.historial.filter(h=>idsEquipos.includes(h.equipoId));
+    return {
+      ubicacion: u,
+      horas: entradas.reduce((s,h)=>s+Number(h.horas||0),0),
+      litros: entradas.filter(h=>h.tipo==='Carga de combustible').reduce((s,h)=>s+Number(h.litros||0),0),
+      services: entradas.filter(h=>h.tipo==='Service').length,
+      reparaciones: entradas.filter(h=>h.tipo==='Reparación / Correctivo').length
+    };
+  });
+
+  const horasOrd = [...porUbic].sort((a,b)=>b.horas-a.horas);
+  barList('reporte-horas-ubic', horasOrd.map(x=>({label:x.ubicacion, value:x.horas})));
+
+  const litrosOrd = [...porUbic].sort((a,b)=>b.litros-a.litros);
+  barList('reporte-combustible-ubic', litrosOrd.map(x=>({label:x.ubicacion, value:x.litros, display:x.litros.toLocaleString()+' L'})));
+
+  const serviceOrd = [...porUbic].sort((a,b)=>b.services-a.services);
+  barList('reporte-service-ubic', serviceOrd.map(x=>({label:x.ubicacion, value:x.services})));
+
+  const reparacionOrd = [...porUbic].sort((a,b)=>b.reparaciones-a.reparaciones);
+  barList('reporte-reparacion-ubic', reparacionOrd.map(x=>({label:x.ubicacion, value:x.reparaciones})));
+}
+
+function renderAll(){
+  horasAcumuladas = calcularHorasAcumuladas();
+  horasDesdeService = calcularHorasDesdeService();
+  renderUbicBar();
+  renderOperadoresDatalist();
+  renderMaquinas();
+  renderHistorial();
+  renderAlertas();
+  renderReportes();
+  renderMetrics();
+}
+
+function showTab(id, el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+poblarLoginOperadores();
+renderAll();
+</script>
+</body>
+</html>
