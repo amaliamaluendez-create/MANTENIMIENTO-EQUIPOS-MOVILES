@@ -103,7 +103,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.0</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.1</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -382,7 +382,7 @@ function tipoDe(nombre){
   if(n.includes('mini cargadora')) return 'Mini cargadoras';
   if(n.includes('autoelevador') || n.includes('manitou')) return 'Autoelevadores';
   if(n.includes('semirremolque')) return 'Semirremolques';
-  if(n.includes('camión articulado') || n.includes('camion articulado')) return 'Camiones fuera de ruta';
+  if(n.includes('camión articulado') || n.includes('camion articulado') || n.includes('camión') || n.includes('camion')) return 'Camiones';
   if(n.includes('cargadora')) return 'Palas cargadoras';
   return 'Otros equipos';
 }
@@ -414,8 +414,12 @@ function setUbicIdx(i){ setUbic(window._ubicOpciones[i]); }
 function filterMaquinas(v){ searchTerm=v.toLowerCase(); renderMaquinas(); }
 
 let currentTipo = 'Todas';
+const ORDEN_TIPOS = ['Palas cargadoras','Retroexcavadoras y excavadoras','Camiones'];
 function renderTipoBar(){
-  const tipos=[...new Set(state.equipos.map(e=>e.tipo))].sort((a,b)=>a.localeCompare(b,'es'));
+  const presentes=[...new Set(state.equipos.map(e=>e.tipo))];
+  const prioridad = ORDEN_TIPOS.filter(t=>presentes.includes(t));
+  const resto = presentes.filter(t=>!ORDEN_TIPOS.includes(t)).sort((a,b)=>a.localeCompare(b,'es'));
+  const tipos = [...prioridad, ...resto];
   const el=document.getElementById('tipo-bar');
   if(!el) return;
   el.innerHTML = ['Todas',...tipos].map((t,i)=>`<button class="ubic-btn ${t===currentTipo?'active':''}" onclick="setTipoIdx(${i})">${t}</button>`).join('');
