@@ -103,7 +103,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.1</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.2</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -310,13 +310,14 @@ let horasAcumuladas = {};
 let horasDesdeService = {};
 
 function calcularHorasAcumuladas(){
-  const acumulado = {};
-  state.equipos.forEach(e=>{ acumulado[e.id] = 0; });
-  state.historial.forEach(h=>{
-    if(!(h.equipoId in acumulado)) return;
-    acumulado[h.equipoId] += Number(h.horas||0);
+  const porEquipo = {};
+  state.historial.forEach(h=>{ (porEquipo[h.equipoId]=porEquipo[h.equipoId]||[]).push(h); });
+  const resultado = {};
+  state.equipos.forEach(e=>{
+    const registros = (porEquipo[e.id]||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+    resultado[e.id] = registros.length ? Number(registros[0].horas||0) : 0;
   });
-  return acumulado;
+  return resultado;
 }
 
 function calcularHorasDesdeService(){
@@ -325,12 +326,11 @@ function calcularHorasDesdeService(){
   const resultado = {};
   state.equipos.forEach(e=>{
     const registros = (porEquipo[e.id]||[]).slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
-    let acc = 0;
-    registros.forEach(h=>{
-      acc += Number(h.horas||0);
-      if(h.tipo==='Service') acc = 0;
-    });
-    resultado[e.id] = acc;
+    if(!registros.length){ resultado[e.id] = 0; return; }
+    const ultimaHora = Number(registros[registros.length-1].horas||0);
+    const services = registros.filter(h=>h.tipo==='Service');
+    const horaUltimoService = services.length ? Number(services[services.length-1].horas||0) : 0;
+    resultado[e.id] = Math.max(0, ultimaHora - horaUltimoService);
   });
   return resultado;
 }
@@ -517,6 +517,7 @@ function cardMaquina(e){
       <div class="item-name">${e.nombre}</div>
       <div class="item-ref">${subtitulo(e)}</div>
       ${(e.estado!=='Operativo' && e.motivo) ? `<div class="item-ref" style="color:var(--danger-text);font-weight:600;margin-top:2px"><i class="ti ti-alert-triangle" style="vertical-align:middle;margin-right:3px"></i>${e.motivo}</div>` : ''}
+      ${misServicios.length ? `<div class="item-ref" style="margin-top:3px"><i class="ti ti-history" style="vertical-align:middle;margin-right:3px"></i>Último: ${misServicios[0].fecha} · ${misServicios[0].tipo} · ${misServicios[0].realizadoPor}</div>` : `<div class="item-ref" style="margin-top:3px;color:var(--text3)">Sin historial todavía</div>`}
       <div class="item-meta" style="margin-top:6px">
         ${badgeEstado(e.estado)}
         <span style="display:flex;align-items:center;gap:4px" onclick="event.stopPropagation()">
@@ -607,14 +608,6 @@ async function addServicioInline(id, key){
   else if(cfg.extra==='litros') entry.litros = Number(extraVal)||0;
   else entry.repuestos = extraVal;
   state.historial.push(entry);
-  const operadorNuevo = !operadores.includes(realizadoPor);
-  if(operadorNuevo) operadores.push(realizadoPor);
-  const eq = state.equipos.find(x=>x.id===id);
-  let ubicNueva = false;
-  if(eq){
-    if(!operadoresPorUbicacion[eq.ubicacion]) operadoresPorUbicacion[eq.ubicacion] = [];
-    if(!operadoresPorUbicacion[eq.ubicacion].includes(realizadoPor)){ operadoresPorUbicacion[eq.ubicacion].push(realizadoPor); ubicNueva = true; }
-  }
   expandedIds.add(id);
   renderAll();
   showToast('msg-servicio-'+id);
@@ -625,9 +618,6 @@ async function addServicioInline(id, key){
         repuestos:entry.repuestos||null, litros:entry.litros===''?null:entry.litros, realizado_por:realizadoPor, costo:0, notas
       }).select().single();
       if(data){ entry.id = data.id; if(uid <= data.id) uid = data.id+1; }
-      if(operadorNuevo || ubicNueva){
-        await supabase_client.from('operadores').upsert({nombre:realizadoPor, ubicacion: eq?eq.ubicacion:null}, {onConflict:'nombre'});
-      }
     }catch(err){ console.log('Error guardando historial', err); }
   }
 }
@@ -862,11 +852,12 @@ function renderReporteCombustiblePorMaquina(){
 function renderReportePorUbicacion(){
   const ubicaciones = [...new Set(state.equipos.map(e=>e.ubicacion))].sort((a,b)=>a.localeCompare(b,'es'));
   const porUbic = ubicaciones.map(u=>{
-    const idsEquipos = state.equipos.filter(e=>e.ubicacion===u).map(e=>e.id);
+    const equiposUbic = state.equipos.filter(e=>e.ubicacion===u);
+    const idsEquipos = equiposUbic.map(e=>e.id);
     const entradas = state.historial.filter(h=>idsEquipos.includes(h.equipoId));
     return {
       ubicacion: u,
-      horas: entradas.reduce((s,h)=>s+Number(h.horas||0),0),
+      horas: equiposUbic.reduce((s,e)=>s+(horasAcumuladas[e.id]||0),0),
       litros: entradas.filter(h=>h.tipo==='Carga de combustible').reduce((s,h)=>s+Number(h.litros||0),0),
       services: entradas.filter(h=>h.tipo==='Service').length,
       reparaciones: entradas.filter(h=>h.tipo==='Reparación / Correctivo').length
