@@ -103,7 +103,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.2</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.3</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -231,8 +231,8 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 </div>
 
 <script>
-const today = new Date('2026-07-21');
-const todayStr = today.toISOString().slice(0,10);
+const today = new Date();
+const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
 let uid = 1000;
 let expandedIds = new Set();
 let formAbierto = {};
