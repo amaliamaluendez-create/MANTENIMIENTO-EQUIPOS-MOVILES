@@ -103,7 +103,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v2.4</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v3.0</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -188,10 +188,6 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
   <div class="card">
     <div class="card-title">Combustible por hora (L/hs máquina)</div>
     <div id="reporte-combustible-hora"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Horas máquina por ubicación</div>
-    <div id="reporte-horas-ubic"></div>
   </div>
   <div class="card">
     <div class="card-title">Combustible cargado por ubicación (litros)</div>
@@ -327,7 +323,7 @@ function calcularHorasAcumuladas(){
   state.historial.forEach(h=>{ (porEquipo[h.equipoId]=porEquipo[h.equipoId]||[]).push(h); });
   const resultado = {};
   state.equipos.forEach(e=>{
-    const registros = (porEquipo[e.id]||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+    const registros = (porEquipo[e.id]||[]).filter(h=>Number(h.horas)>0).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha) || b.id-a.id);
     resultado[e.id] = registros.length ? Number(registros[0].horas||0) : 0;
   });
   return resultado;
@@ -338,9 +334,10 @@ function calcularHorasDesdeService(){
   state.historial.forEach(h=>{ (porEquipo[h.equipoId]=porEquipo[h.equipoId]||[]).push(h); });
   const resultado = {};
   state.equipos.forEach(e=>{
-    const registros = (porEquipo[e.id]||[]).slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
-    if(!registros.length){ resultado[e.id] = 0; return; }
-    const ultimaHora = Number(registros[registros.length-1].horas||0);
+    const registros = (porEquipo[e.id]||[]).slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha) || a.id-b.id);
+    const conHoras = registros.filter(h=>Number(h.horas)>0);
+    if(!conHoras.length){ resultado[e.id] = 0; return; }
+    const ultimaHora = Number(conHoras[conHoras.length-1].horas);
     const services = registros.filter(h=>h.tipo==='Service');
     const horaUltimoService = services.length ? Number(services[services.length-1].horas||0) : 0;
     resultado[e.id] = Math.max(0, ultimaHora - horaUltimoService);
@@ -573,8 +570,19 @@ function formularioTipo(id, key){
     : cfg.extra==='litros'
     ? `<div class="field"><label>Litros cargados</label><input type="number" id="sf-extra-${id}" min="0" placeholder="120"></div>`
     : `<div class="field"><label>Repuestos utilizados</label><input type="text" id="sf-extra-${id}" placeholder="Filtro, manguera..."></div>`;
+  let avisoHoras = '';
+  if(key==='combustible'){
+    const cargas = state.historial.filter(h=>h.equipoId===id && h.tipo==='Carga de combustible').sort((a,b)=>new Date(b.fecha)-new Date(a.fecha) || b.id-a.id);
+    const ultHora = horasAcumuladas[id] || 0;
+    if(cargas.length && !Number(cargas[0].horas)){
+      avisoHoras = `<div style="background:var(--danger-bg);color:var(--danger-text);border:2px solid var(--danger-text);border-radius:var(--r);padding:8px 10px;font-size:12px;font-weight:700;margin-bottom:10px"><i class="ti ti-alert-triangle" style="vertical-align:middle;margin-right:4px"></i>La última carga de esta máquina (${cargas[0].fecha}, ${cargas[0].realizadoPor}) se hizo SIN horas. Por favor cargá las horas del tablero ahora.${ultHora ? ' Última hora registrada: '+ultHora.toLocaleString()+' hs.' : ''}</div>`;
+    } else if(ultHora){
+      avisoHoras = `<div style="font-size:11px;color:var(--text2);margin-bottom:8px">Última hora registrada: <strong>${ultHora.toLocaleString()} hs</strong></div>`;
+    }
+  }
   return `<div class="card" style="background:${cfg.bg};border-color:${cfg.text};border-width:2px;margin-top:8px">
     <div class="card-title" style="color:${cfg.text}">Nuevo: ${cfg.tipoLabel}</div>
+    ${avisoHoras}
     <div class="row2">
       <div class="field"><label>Fecha</label><input type="date" id="sf-fecha-${id}" value="${todayStr}"></div>
       <div class="field"><label>Horas máquina</label><input type="number" id="sf-horas-${id}" min="0" placeholder="50"></div>
@@ -850,16 +858,76 @@ function renderReporteCombustiblePorMaquina(){
   const porMaquina = state.equipos.map(e=>{
     const entradas = state.historial.filter(h=>h.equipoId===e.id);
     const litros = entradas.filter(h=>h.tipo==='Carga de combustible').reduce((s,h)=>s+Number(h.litros||0),0);
-    const horas = horasAcumuladas[e.id]||0;
-    return { nombre:e.nombre, litros, horas, litrosPorHora: horas>0 ? litros/horas : 0 };
+    // Consumo por tramo: litros de la carga / horas trabajadas desde la carga anterior
+    const conHoras = entradas.filter(h=>h.tipo==='Carga de combustible' && Number(h.horas)>0 && Number(h.litros)>0)
+      .sort((a,b)=>new Date(a.fecha)-new Date(b.fecha) || Number(a.horas)-Number(b.horas));
+    const tramos = [];
+    for(let i=1;i<conHoras.length;i++){
+      const dh = Number(conHoras[i].horas) - Number(conHoras[i-1].horas);
+      if(dh>0){
+        const l = Number(conHoras[i].litros);
+        tramos.push({fecha:conHoras[i].fecha, desde:Number(conHoras[i-1].horas), hasta:Number(conHoras[i].horas), dh, litros:l, tasa:l/dh});
+      }
+    }
+    const horas = tramos.reduce((s,t)=>s+t.dh,0);
+    const litrosTramos = tramos.reduce((s,t)=>s+t.litros,0);
+    const litrosPorHora = horas>0 ? litrosTramos/horas : 0;
+    const pico = tramos.length ? Math.max(...tramos.map(t=>t.tasa)) : 0;
+    const minimo = tramos.length ? Math.min(...tramos.map(t=>t.tasa)) : 0;
+    return { nombre:e.nombre, litros, horas, litrosPorHora, tramos, pico, minimo };
   });
 
   const conCombustible = porMaquina.filter(x=>x.litros>0);
   const litrosOrd = [...conCombustible].sort((a,b)=>b.litros-a.litros);
   barList('reporte-combustible-maquina', litrosOrd.map(x=>({label:x.nombre, value:x.litros, display:x.litros.toLocaleString()+' L'})));
 
-  const porHoraOrd = conCombustible.filter(x=>x.horas>0).sort((a,b)=>b.litrosPorHora-a.litrosPorHora);
-  barList('reporte-combustible-hora', porHoraOrd.map(x=>({label:x.nombre, value:x.litrosPorHora, display:x.litrosPorHora.toFixed(2)+' L/hs'})));
+  const porHoraOrd = conCombustible.filter(x=>x.tramos.length).sort((a,b)=>b.litrosPorHora-a.litrosPorHora);
+  const hElBase = document.getElementById('reporte-combustible-hora');
+  if(!porHoraOrd.length){
+    hElBase.innerHTML = '<div class="empty">Sin datos: hacen falta al menos 2 cargas con horas por máquina.</div>';
+  } else {
+    const maxProm = Math.max(...porHoraOrd.map(x=>x.litrosPorHora));
+    hElBase.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Consumo = litros de cada carga ÷ horas trabajadas desde la carga anterior. Tocá una máquina para ver el historial.</div>' +
+    porHoraOrd.map(x=>`<details style="margin-bottom:10px">
+      <summary style="cursor:pointer;list-style:none">
+        <div class="bar-row" style="margin-bottom:0">
+          <div class="bar-row-top"><span>${x.nombre}</span><span style="font-weight:600;color:var(--text)">prom ${x.litrosPorHora.toFixed(1)} L/hs</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.litrosPorHora/maxProm*100)}%"></div></div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">pico ${x.pico.toFixed(1)} L/hs · mínimo ${x.minimo.toFixed(1)} L/hs · ${x.tramos.length} tramo${x.tramos.length===1?'':'s'} · ${x.horas.toLocaleString()} hs</div>
+        </div>
+      </summary>
+      <div style="margin-top:6px">
+        ${x.tramos.map(t=>{
+          const esPico = t.tasa > x.litrosPorHora*1.3 && x.tramos.length>1;
+          return `<div class="item-card" style="padding:.5rem .75rem;${esPico?'border-color:var(--danger-text);background:var(--danger-bg)':''}">
+            <div class="item-meta" style="justify-content:space-between">
+              <span>${t.fecha} · ${t.desde.toLocaleString()} → ${t.hasta.toLocaleString()} hs (${t.dh.toLocaleString()} hs)</span>
+              <span class="badge ${esPico?'b-danger':'b-gray'}">${t.tasa.toFixed(1)} L/hs${esPico?' · pico':''}</span>
+            </div>
+            <div class="item-ref">${t.litros.toLocaleString()} L cargados</div>
+          </div>`;}).join('')}
+      </div>
+    </details>`).join('');
+  }
+
+  const sinHoras = [];
+  state.equipos.forEach(e=>{
+    const cargas = state.historial.filter(h=>h.equipoId===e.id && h.tipo==='Carga de combustible' && !Number(h.horas));
+    if(cargas.length){
+      const ult = cargas.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha))[0];
+      sinHoras.push({nombre:e.nombre, ubicacion:e.ubicacion, n:cargas.length, fecha:ult.fecha, por:ult.realizadoPor});
+    }
+  });
+  const hEl = document.getElementById('reporte-combustible-hora');
+  if(sinHoras.length){
+    hEl.innerHTML += `<div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border)">
+      <div class="card-title" style="color:var(--danger-text)">Cargaron combustible y no pusieron las horas</div>
+      ${sinHoras.map(x=>`<div class="item-card" style="border-color:var(--danger-text)">
+        <div class="item-name" style="margin:0">${x.nombre}</div>
+        <div class="item-ref">${x.ubicacion} · ${x.n} carga${x.n===1?'':'s'} sin horas · última: ${x.fecha} · ${x.por}</div>
+      </div>`).join('')}
+    </div>`;
+  }
 }
 
 function renderReportePorUbicacion(){
@@ -876,9 +944,6 @@ function renderReportePorUbicacion(){
       reparaciones: entradas.filter(h=>h.tipo==='Reparación / Correctivo').length
     };
   });
-
-  const horasOrd = [...porUbic].sort((a,b)=>b.horas-a.horas);
-  barList('reporte-horas-ubic', horasOrd.map(x=>({label:x.ubicacion, value:x.horas})));
 
   const litrosOrd = [...porUbic].sort((a,b)=>b.litros-a.litros);
   barList('reporte-combustible-ubic', litrosOrd.map(x=>({label:x.ubicacion, value:x.litros, display:x.litros.toLocaleString()+' L'})));
