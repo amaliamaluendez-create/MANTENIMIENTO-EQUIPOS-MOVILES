@@ -742,7 +742,12 @@ async function delEquipo(id, nombre){
   }
 }
 async function delHistorial(id){
-  state.historial = state.historial.filter(h=>h.id!==id);
+  const h = state.historial.find(x=>x.id===id);
+  if(!h) return;
+  const eq = (state.equipos.find(e=>e.id===h.equipoId)||{}).nombre || 'Equipo';
+  const ok = confirm(`¿Seguro que querés borrar este movimiento?\n\n${h.tipo} · ${h.fecha}\n${eq}\nPor: ${h.realizadoPor}\n\nNo se puede deshacer.`);
+  if(!ok) return;
+  state.historial = state.historial.filter(x=>x.id!==id);
   renderAll();
   if(supabase_client){
     try{ await supabase_client.from('historial').delete().eq('id', id); }catch(err){ console.log('Error borrando historial', err); }
