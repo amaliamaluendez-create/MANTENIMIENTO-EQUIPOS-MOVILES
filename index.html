@@ -103,7 +103,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v3.0</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v3.2</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -177,6 +177,14 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 </div>
 
 <div class="panel" id="panel-reportes">
+  <div class="row2" style="align-items:flex-end;margin-bottom:12px">
+    <div class="field" style="margin-bottom:0"><label>Mes de los reportes</label><select id="rep-mes" onchange="renderReportes()"></select></div>
+    <button class="btn-sec" style="margin:0" onclick="descargarCorteCombustible()"><i class="ti ti-download" style="vertical-align:middle;margin-right:4px"></i>Descargar cargas (CSV)</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Combustible por mes</div>
+    <div id="reporte-combustible-mes"></div>
+  </div>
   <div class="card">
     <div class="card-title">Fuera de servicio / en mantenimiento</div>
     <div id="reporte-no-operativas"></div>
@@ -585,7 +593,7 @@ function formularioTipo(id, key){
     ${avisoHoras}
     <div class="row2">
       <div class="field"><label>Fecha</label><input type="date" id="sf-fecha-${id}" value="${todayStr}"></div>
-      <div class="field"><label>Horas máquina</label><input type="number" id="sf-horas-${id}" min="0" placeholder="50"></div>
+      <div class="field"><label>Horas máquina (sin punto de miles)</label><input type="text" inputmode="decimal" id="sf-horas-${id}" placeholder="Ej: 1148 o 1148,5"></div>
     </div>
     ${extraHtml}
     ${datalistHtml}
@@ -613,10 +621,82 @@ async function updateCampo(id, campo, val){
   }
 }
 
+
+// ===== Validaciones de carga (v3.1) =====
+function fmtHs(n){ return Number(n).toLocaleString('es-AR', {maximumFractionDigits:1, useGrouping:false}); }
+
+function validarFecha(fecha){
+  const f = new Date(fecha+'T00:00:00');
+  const min = new Date('2020-01-01T00:00:00');
+  const max = new Date(today.getTime() + 86400000);
+  if(isNaN(f) || f < min || f > max){
+    alert('La fecha '+fecha+' está fuera de rango. Revisá el día, el mes y el año.');
+    return false;
+  }
+  return true;
+}
+
+function ultimaLectura(id, fecha){
+  const previas = state.historial
+    .filter(h=>h.equipoId===id && Number(h.horas)>0 && h.fecha<=fecha)
+    .sort((a,b)=> a.fecha<b.fecha ? 1 : a.fecha>b.fecha ? -1 : Number(b.horas)-Number(a.horas));
+  return previas[0] || null;
+}
+
+// Devuelve las horas validadas, 0 si se registra sin horas, o null si hay que cancelar.
+function validarHoras(id, fecha, raw, key){
+  let txt = String(raw||'').replace(/\s/g,'');
+  if(!txt){
+    if(key==='combustible'){
+      return confirm('No cargaste las horas del tablero. Sin horas no se puede calcular el consumo de la máquina.\n\n¿Registrar igual sin horas?') ? 0 : null;
+    }
+    return 0;
+  }
+  const ult = ultimaLectura(id, fecha);
+  const ultH = ult ? Number(ult.horas) : null;
+  let horas;
+  if(/^\d{1,3}(\.\d{3})+$/.test(txt)){
+    // Ej: 2.721 -> probablemente punto de miles
+    const sinPuntos = Number(txt.replace(/\./g,''));
+    const comoDecimal = Number(txt);
+    const usarDecimal = ultH!==null && Math.abs(comoDecimal-ultH) < Math.abs(sinPuntos-ultH);
+    if(usarDecimal){
+      horas = comoDecimal;
+    } else {
+      if(!confirm('Escribiste "'+raw+'". Lo tomo como '+fmtHs(sinPuntos)+' hs (sin punto de miles). ¿Es correcto?')) return null;
+      horas = sinPuntos;
+    }
+  } else {
+    if(txt.includes(',')) txt = txt.replace(/\./g,'').replace(',', '.');
+    horas = Number(txt);
+  }
+  if(!isFinite(horas) || horas<0){
+    alert('Las horas "'+raw+'" no son un número válido.');
+    return null;
+  }
+  if(ultH===null || horas===0) return horas;
+
+  const dias = Math.max(1, Math.round((new Date(fecha+'T00:00:00') - new Date(ult.fecha+'T00:00:00'))/86400000));
+  const maxSubida = 24*dias;
+  const pista = ()=>{
+    const cands = [horas/10, horas*10, horas/1000, horas*1000];
+    const ok = cands.find(c=> c>=ultH && c-ultH<=maxSubida);
+    return ok!==undefined ? '\n\n¿Quisiste poner '+fmtHs(ok)+' hs? Revisá la coma decimal y los ceros.' : '';
+  };
+  const base = '\n\nÚltima lectura: '+fmtHs(ultH)+' hs el '+ult.fecha+' ('+(ult.realizadoPor||'s/d')+').';
+  if(horas < ultH){
+    return confirm('Las horas que cargaste ('+fmtHs(horas)+') son MENORES que la última lectura. El horómetro no puede bajar.'+base+pista()+'\n\n¿Registrar igual?') ? horas : null;
+  }
+  if(horas - ultH > maxSubida){
+    return confirm('Cargaste '+fmtHs(horas)+' hs: son '+fmtHs(horas-ultH)+' hs más que la última lectura en '+dias+' día'+(dias===1?'':'s')+'. Es más de 24 hs por día.'+base+pista()+'\n\n¿Registrar igual?') ? horas : null;
+  }
+  return horas;
+}
+
 async function addServicioInline(id, key){
   const cfg = TIPO_CONFIG[key];
   const fecha = document.getElementById('sf-fecha-'+id).value;
-  const horas = Number(document.getElementById('sf-horas-'+id).value) || 0;
+  const horasRaw = document.getElementById('sf-horas-'+id).value;
   const extraVal = document.getElementById('sf-extra-'+id).value;
   const realizadoPor = document.getElementById('sf-realizadopor-'+id).value.trim();
   const notas = document.getElementById('sf-notas-'+id).value;
@@ -624,6 +704,9 @@ async function addServicioInline(id, key){
     alert('Completá al menos la fecha y quién lo realizó.');
     return;
   }
+  if(!validarFecha(fecha)) return;
+  const horas = validarHoras(id, fecha, horasRaw, key);
+  if(horas===null) return;
   const entry = {id:uid++, equipoId:id, fecha, tipo:cfg.tipoLabel, horas, aceiteFiltros:'', repuestos:'', litros:'', realizadoPor, costo:0, notas};
   if(cfg.extra==='aceite') entry.aceiteFiltros = extraVal;
   else if(cfg.extra==='litros') entry.litros = Number(extraVal)||0;
@@ -742,12 +825,7 @@ async function delEquipo(id, nombre){
   }
 }
 async function delHistorial(id){
-  const h = state.historial.find(x=>x.id===id);
-  if(!h) return;
-  const eq = (state.equipos.find(e=>e.id===h.equipoId)||{}).nombre || 'Equipo';
-  const ok = confirm(`¿Seguro que querés borrar este movimiento?\n\n${h.tipo} · ${h.fecha}\n${eq}\nPor: ${h.realizadoPor}\n\nNo se puede deshacer.`);
-  if(!ok) return;
-  state.historial = state.historial.filter(x=>x.id!==id);
+  state.historial = state.historial.filter(h=>h.id!==id);
   renderAll();
   if(supabase_client){
     try{ await supabase_client.from('historial').delete().eq('id', id); }catch(err){ console.log('Error borrando historial', err); }
@@ -839,7 +917,82 @@ function barList(containerId, data){
   </div>`).join('');
 }
 
+// ===== Cortes por mes (v3.2) =====
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function mesLabel(ym){ const [y,m]=ym.split('-'); return MESES[Number(m)-1]+' '+y; }
+function mesesDisponibles(){
+  return [...new Set(state.historial.filter(h=>h.fecha && h.fecha>='2020-01-01').map(h=>h.fecha.slice(0,7)))].sort().reverse();
+}
+let mesInicializado = false;
+function renderSelectorMes(){
+  const sel = document.getElementById('rep-mes');
+  if(!sel) return;
+  const prev = sel.value;
+  const meses = mesesDisponibles();
+  sel.innerHTML = '<option value="todos">Todos los meses</option>' + meses.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
+  if(!mesInicializado){
+    const actual = todayStr.slice(0,7);
+    sel.value = meses.includes(actual) ? actual : 'todos';
+    if(meses.length) mesInicializado = true;
+  } else {
+    sel.value = [...sel.options].some(o=>o.value===prev) ? prev : 'todos';
+  }
+}
+function mesSel(){ const s=document.getElementById('rep-mes'); return s ? s.value : 'todos'; }
+function enMes(fecha){ const m=mesSel(); return m==='todos' || String(fecha||'').slice(0,7)===m; }
+
+function renderReporteCombustibleMes(){
+  const cont = document.getElementById('reporte-combustible-mes');
+  if(!cont) return;
+  const cargas = state.historial.filter(h=>h.tipo==='Carga de combustible' && h.fecha && h.fecha>='2020-01-01');
+  const porMes = {};
+  cargas.forEach(h=>{
+    const m = h.fecha.slice(0,7);
+    const x = porMes[m] = porMes[m] || {cargas:0, litros:0, sinHoras:0};
+    x.cargas++; x.litros += Number(h.litros||0); if(!Number(h.horas)) x.sinHoras++;
+  });
+  const meses = Object.keys(porMes).sort().reverse();
+  if(!meses.length){ cont.innerHTML='<div class="empty">Sin cargas de combustible.</div>'; return; }
+  const sel = mesSel();
+  const th = 'style="text-align:left;padding:6px 4px;border-bottom:0.5px solid var(--border2);font-size:11px;color:var(--text2);font-weight:500"';
+  const thr = 'style="text-align:right;padding:6px 4px;border-bottom:0.5px solid var(--border2);font-size:11px;color:var(--text2);font-weight:500"';
+  cont.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <tr><th ${th}>Mes</th><th ${thr}>Cargas</th><th ${thr}>Litros</th><th ${thr}>Sin horas</th></tr>
+    ${meses.map(m=>{
+      const x = porMes[m]; const act = m===sel;
+      return `<tr style="${act?'background:var(--bg2);font-weight:600':''}">
+        <td style="padding:6px 4px;border-bottom:0.5px solid var(--border)">${mesLabel(m)}</td>
+        <td style="padding:6px 4px;border-bottom:0.5px solid var(--border);text-align:right">${x.cargas}</td>
+        <td style="padding:6px 4px;border-bottom:0.5px solid var(--border);text-align:right">${x.litros.toLocaleString('es-AR')} L</td>
+        <td style="padding:6px 4px;border-bottom:0.5px solid var(--border);text-align:right;${x.sinHoras?'color:var(--danger-text)':''}">${x.sinHoras}</td>
+      </tr>`;}).join('')}
+  </table>
+  <div style="font-size:11px;color:var(--text3);margin-top:6px">Los reportes de abajo muestran ${sel==='todos'?'todos los meses':mesLabel(sel)}. Un tramo de consumo se asigna al mes de la carga que lo cierra.</div>`;
+}
+
+function csvCelda(v){ v = (v==null ? '' : String(v)); return /[;"\n\r]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function descargarCorteCombustible(){
+  const m = mesSel();
+  const filas = state.historial
+    .filter(h=>h.tipo==='Carga de combustible' && h.fecha && h.fecha>='2020-01-01' && enMes(h.fecha))
+    .sort((a,b)=> a.fecha<b.fecha ? -1 : a.fecha>b.fecha ? 1 : a.id-b.id);
+  if(!filas.length){ alert('No hay cargas de combustible en '+(m==='todos'?'ningún mes':mesLabel(m))+'.'); return; }
+  const lineas = [['Fecha','Ubicación','N° inventario','Equipo','Horas','Litros','Realizado por','Notas'].join(';')];
+  filas.forEach(h=>{
+    const e = state.equipos.find(x=>x.id===h.equipoId) || {};
+    lineas.push([h.fecha, e.ubicacion, e.invNro, e.nombre, String(h.horas||'').replace('.',','), h.litros, h.realizadoPor, h.notas].map(csvCelda).join(';'));
+  });
+  const blob = new Blob(['\ufeff'+lineas.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'combustible_'+(m==='todos'?'todos':m)+'.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
 function renderReportes(){
+  renderSelectorMes();
+  renderReporteCombustibleMes();
   renderReporteNoOperativas();
   renderReporteCombustiblePorMaquina();
   renderReportePorUbicacion();
@@ -862,14 +1015,15 @@ function renderReporteNoOperativas(){
 function renderReporteCombustiblePorMaquina(){
   const porMaquina = state.equipos.map(e=>{
     const entradas = state.historial.filter(h=>h.equipoId===e.id);
-    const litros = entradas.filter(h=>h.tipo==='Carga de combustible').reduce((s,h)=>s+Number(h.litros||0),0);
+    const litros = entradas.filter(h=>h.tipo==='Carga de combustible' && enMes(h.fecha)).reduce((s,h)=>s+Number(h.litros||0),0);
     // Consumo por tramo: litros de la carga / horas trabajadas desde la carga anterior
-    const conHoras = entradas.filter(h=>h.tipo==='Carga de combustible' && Number(h.horas)>0 && Number(h.litros)>0)
+    const conHoras = entradas.filter(h=>h.tipo==='Carga de combustible' && Number(h.horas)>0 && Number(h.litros)>0 && h.fecha>='2020-01-01')
       .sort((a,b)=>new Date(a.fecha)-new Date(b.fecha) || Number(a.horas)-Number(b.horas));
     const tramos = [];
     for(let i=1;i<conHoras.length;i++){
       const dh = Number(conHoras[i].horas) - Number(conHoras[i-1].horas);
-      if(dh>0){
+      const dias = Math.max(1, Math.round((new Date(conHoras[i].fecha) - new Date(conHoras[i-1].fecha))/86400000));
+      if(dh>0 && dh<=24*dias && enMes(conHoras[i].fecha)){
         const l = Number(conHoras[i].litros);
         tramos.push({fecha:conHoras[i].fecha, desde:Number(conHoras[i-1].horas), hasta:Number(conHoras[i].horas), dh, litros:l, tasa:l/dh});
       }
@@ -917,7 +1071,7 @@ function renderReporteCombustiblePorMaquina(){
 
   const sinHoras = [];
   state.equipos.forEach(e=>{
-    const cargas = state.historial.filter(h=>h.equipoId===e.id && h.tipo==='Carga de combustible' && !Number(h.horas));
+    const cargas = state.historial.filter(h=>h.equipoId===e.id && h.tipo==='Carga de combustible' && !Number(h.horas) && enMes(h.fecha));
     if(cargas.length){
       const ult = cargas.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha))[0];
       sinHoras.push({nombre:e.nombre, ubicacion:e.ubicacion, n:cargas.length, fecha:ult.fecha, por:ult.realizadoPor});
@@ -940,7 +1094,7 @@ function renderReportePorUbicacion(){
   const porUbic = ubicaciones.map(u=>{
     const equiposUbic = state.equipos.filter(e=>e.ubicacion===u);
     const idsEquipos = equiposUbic.map(e=>e.id);
-    const entradas = state.historial.filter(h=>idsEquipos.includes(h.equipoId));
+    const entradas = state.historial.filter(h=>idsEquipos.includes(h.equipoId) && enMes(h.fecha));
     return {
       ubicacion: u,
       horas: equiposUbic.reduce((s,e)=>s+(horasAcumuladas[e.id]||0),0),
