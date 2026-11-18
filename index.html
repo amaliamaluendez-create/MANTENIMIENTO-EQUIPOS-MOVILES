@@ -103,7 +103,7 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
 
 <div class="wrap" id="app-wrap" style="display:none">
 <div class="app-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v3.2</span></h1>
+  <h1 style="margin-bottom:0">Mantenimiento de Equipos Móviles <span style="font-size:10px;font-weight:400;color:var(--text);opacity:.7;vertical-align:middle">v3.4</span></h1>
   <button class="btn-sec" onclick="toggleModalOperadores(true)" style="width:auto;white-space:nowrap;font-size:12px;padding:8px 10px;margin:0;flex-shrink:0;background:var(--text);color:var(--primary);border-color:var(--text)"><i class="ti ti-users" style="vertical-align:middle;margin-right:4px"></i>Operadores</button>
 </div>
 <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text2);margin-bottom:12px">
@@ -182,24 +182,20 @@ h1{font-size:14px;font-weight:500;margin-bottom:1rem;color:var(--text2)}
     <button class="btn-sec" style="margin:0" onclick="descargarCorteCombustible()"><i class="ti ti-download" style="vertical-align:middle;margin-right:4px"></i>Descargar cargas (CSV)</button>
   </div>
   <div class="card">
-    <div class="card-title">Combustible por mes</div>
-    <div id="reporte-combustible-mes"></div>
-  </div>
-  <div class="card">
     <div class="card-title">Fuera de servicio / en mantenimiento</div>
     <div id="reporte-no-operativas"></div>
   </div>
   <div class="card">
-    <div class="card-title">Combustible total por máquina (litros)</div>
+    <div class="card-title">Combustible total por planta (litros)</div>
     <div id="reporte-combustible-maquina"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Consumo por hora por planta (L/hs)</div>
+    <div id="reporte-consumo-ubic"></div>
   </div>
   <div class="card">
     <div class="card-title">Combustible por hora (L/hs máquina)</div>
     <div id="reporte-combustible-hora"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Combustible cargado por ubicación (litros)</div>
-    <div id="reporte-combustible-ubic"></div>
   </div>
   <div class="card">
     <div class="card-title">Services por ubicación</div>
@@ -990,8 +986,111 @@ function descargarCorteCombustible(){
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
 
+// ===== Agrupar listas por planta (v3.4) =====
+function agruparPorPlanta(items, render, resumen){
+  const grupos = {};
+  items.forEach(x=>{ const u = x.ubicacion || 'Sin ubicación'; (grupos[u]=grupos[u]||[]).push(x); });
+  return Object.keys(grupos).sort((a,b)=>grupos[b].length-grupos[a].length || a.localeCompare(b,'es')).map(u=>`
+    <div style="margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+      <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">${u}</span>
+      <span style="font-size:11px;color:var(--text2);white-space:nowrap">${resumen?resumen(grupos[u]):grupos[u].length}</span>
+    </div>
+    ${grupos[u].map(render).join('')}`).join('');
+}
+
+// ===== Combustible total por planta (v3.4) =====
+function renderCombustiblePorPlanta(maqs){
+  const cont = document.getElementById('reporte-combustible-maquina');
+  if(!cont) return;
+  const porUbic = {};
+  maqs.forEach(m=>{
+    const u = porUbic[m.ubicacion] = porUbic[m.ubicacion] || {litros:0, cargas:0, maqs:[]};
+    u.litros += m.litros; u.cargas += m.cargas; u.maqs.push(m);
+  });
+  const lista = Object.entries(porUbic).map(([ubic,u])=>({ubic,...u})).sort((a,b)=>b.litros-a.litros);
+  if(!lista.length){ cont.innerHTML='<div class="empty">Sin cargas de combustible en el período.</div>'; return; }
+  const total = lista.reduce((s,x)=>s+x.litros,0);
+  const max = Math.max(...lista.map(x=>x.litros));
+  const n = v=>Number(v).toLocaleString('es-AR');
+  cont.innerHTML = `<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Tocá una planta para ver cada máquina.</div>` +
+    lista.map(x=>`<details style="margin-bottom:10px">
+      <summary style="cursor:pointer;list-style:none">
+        <div class="bar-row" style="margin-bottom:0">
+          <div class="bar-row-top"><span>${x.ubic}</span><span style="font-weight:600;color:var(--text)">${n(x.litros)} L</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.litros/max*100)}%"></div></div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${Math.round(x.litros/total*100)}% del total · ${x.cargas} carga${x.cargas===1?'':'s'} · ${x.maqs.length} máquina${x.maqs.length===1?'':'s'}</div>
+        </div>
+      </summary>
+      <div style="margin-top:6px">
+        ${x.maqs.sort((a,b)=>b.litros-a.litros).map(m=>`<div class="item-card" style="padding:.5rem .75rem">
+          <div class="item-meta" style="justify-content:space-between">
+            <span>${m.inv?'#'+m.inv+' · ':''}${m.nombre}</span>
+            <span class="badge b-gray">${n(m.litros)} L</span>
+          </div>
+          <div class="item-ref">${m.cargas} carga${m.cargas===1?'':'s'}</div>
+        </div>`).join('')}
+      </div>
+    </details>`).join('') +
+    `<div style="display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--text);padding-top:8px;margin-top:4px">
+      <span style="font-size:13px;font-weight:700">TOTAL</span>
+      <span style="font-size:18px;font-weight:700">${n(total)} L</span>
+    </div>
+    <div style="font-size:11px;color:var(--text2);text-align:right">${lista.reduce((s,x)=>s+x.cargas,0)} cargas · ${lista.length} planta${lista.length===1?'':'s'}</div>`;
+}
+
+// ===== Consumo por hora por ubicación (v3.3) =====
+function tramosEquipo(e){
+  const conHoras = state.historial.filter(h=>h.equipoId===e.id && h.tipo==='Carga de combustible' && Number(h.horas)>0 && Number(h.litros)>0 && h.fecha>='2020-01-01')
+    .sort((a,b)=>new Date(a.fecha)-new Date(b.fecha) || Number(a.horas)-Number(b.horas));
+  const tramos = [];
+  for(let i=1;i<conHoras.length;i++){
+    const dh = Number(conHoras[i].horas) - Number(conHoras[i-1].horas);
+    const dias = Math.max(1, Math.round((new Date(conHoras[i].fecha) - new Date(conHoras[i-1].fecha))/86400000));
+    if(dh>0 && dh<=24*dias && enMes(conHoras[i].fecha)) tramos.push({dh, litros:Number(conHoras[i].litros)});
+  }
+  return tramos;
+}
+
+function renderReporteConsumoUbicacion(){
+  const cont = document.getElementById('reporte-consumo-ubic');
+  if(!cont) return;
+  const porUbic = {};
+  state.equipos.forEach(e=>{
+    const tr = tramosEquipo(e);
+    if(!tr.length) return;
+    const hs = tr.reduce((s,t)=>s+t.dh,0), lt = tr.reduce((s,t)=>s+t.litros,0);
+    const u = porUbic[e.ubicacion] = porUbic[e.ubicacion] || {hs:0, lt:0, maqs:[]};
+    u.hs += hs; u.lt += lt;
+    u.maqs.push({nombre:e.nombre, inv:e.invNro, hs, lt, lhs: lt/hs, n: tr.length});
+  });
+  const lista = Object.entries(porUbic).map(([ubic,u])=>({ubic, ...u, lhs: u.lt/u.hs})).sort((a,b)=>b.lhs-a.lhs);
+  if(!lista.length){ cont.innerHTML = '<div class="empty">Sin datos: hacen falta al menos 2 cargas con horas por máquina.</div>'; return; }
+  const max = Math.max(...lista.map(x=>x.lhs));
+  const fmt = (n,d=1)=>n.toLocaleString('es-AR',{minimumFractionDigits:d, maximumFractionDigits:d});
+  cont.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Promedio de la planta = litros ÷ horas de todas sus máquinas con tramos válidos. Tocá una ubicación para ver cada máquina.</div>' +
+    lista.map(x=>`<details style="margin-bottom:10px">
+      <summary style="cursor:pointer;list-style:none">
+        <div class="bar-row" style="margin-bottom:0">
+          <div class="bar-row-top"><span>${x.ubic}</span><span style="font-weight:600;color:var(--text)">${fmt(x.lhs)} L/hs</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.lhs/max*100)}%"></div></div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${x.maqs.length} máquina${x.maqs.length===1?'':'s'} · ${fmt(x.hs,0)} hs · ${fmt(x.lt,0)} L</div>
+        </div>
+      </summary>
+      <div style="margin-top:6px">
+        ${x.maqs.sort((a,b)=>b.lhs-a.lhs).map(m=>`<div class="item-card" style="padding:.5rem .75rem">
+          <div class="item-meta" style="justify-content:space-between">
+            <span>${m.inv?'#'+m.inv+' · ':''}${m.nombre}</span>
+            <span class="badge b-gray">${fmt(m.lhs)} L/hs</span>
+          </div>
+          <div class="item-ref">${fmt(m.hs,0)} hs · ${fmt(m.lt,0)} L · ${m.n} tramo${m.n===1?'':'s'}${m.n<2?' (dato preliminar)':''}</div>
+        </div>`).join('')}
+      </div>
+    </details>`).join('');
+}
+
 function renderReportes(){
   renderSelectorMes();
+  renderReporteConsumoUbicacion();
   renderReporteCombustibleMes();
   renderReporteNoOperativas();
   renderReporteCombustiblePorMaquina();
@@ -1002,14 +1101,17 @@ function renderReporteNoOperativas(){
   const cont = document.getElementById('reporte-no-operativas');
   const lista = state.equipos.filter(e=>e.estado!=='Operativo');
   if(!lista.length){ cont.innerHTML = '<div class="empty">Todos los equipos están operativos.</div>'; return; }
-  const ordenada = [...lista].sort((a,b)=>a.estado==='Fuera de servicio'?-1:1);
-  cont.innerHTML = ordenada.map(e=>`<div class="item-card">
+  const ordenada = [...lista].sort((a,b)=> (a.estado==='Fuera de servicio'?0:1)-(b.estado==='Fuera de servicio'?0:1) || a.nombre.localeCompare(b.nombre,'es'));
+  cont.innerHTML = agruparPorPlanta(ordenada, e=>`<div class="item-card">
     <div class="item-meta" style="justify-content:space-between">
-      <span class="item-name" style="margin:0">${e.nombre}</span>
+      <span class="item-name" style="margin:0">${e.invNro?'#'+e.invNro+' · ':''}${e.nombre}</span>
       ${badgeEstado(e.estado)}
     </div>
-    <div class="item-ref">${e.ubicacion}${e.motivo ? ' · '+e.motivo : ''}</div>
-  </div>`).join('');
+    <div class="item-ref">${e.motivo ? e.motivo : '<span style="color:var(--text3)">Sin motivo cargado</span>'}</div>
+  </div>`, grupo=>{
+    const fs = grupo.filter(e=>e.estado==='Fuera de servicio').length;
+    return `${grupo.length} parado${grupo.length===1?'':'s'}${fs?' · '+fs+' fuera de servicio':''}`;
+  }) + `<div style="display:flex;justify-content:space-between;border-top:2px solid var(--text);padding-top:8px;margin-top:4px;font-weight:700"><span>TOTAL</span><span>${lista.length} equipos</span></div>`;
 }
 
 function renderReporteCombustiblePorMaquina(){
@@ -1033,12 +1135,12 @@ function renderReporteCombustiblePorMaquina(){
     const litrosPorHora = horas>0 ? litrosTramos/horas : 0;
     const pico = tramos.length ? Math.max(...tramos.map(t=>t.tasa)) : 0;
     const minimo = tramos.length ? Math.min(...tramos.map(t=>t.tasa)) : 0;
-    return { nombre:e.nombre, litros, horas, litrosPorHora, tramos, pico, minimo };
+    return { nombre:e.nombre, inv:e.invNro, ubicacion:e.ubicacion, cargas:entradas.filter(h=>h.tipo==='Carga de combustible' && enMes(h.fecha)).length, litros, horas, litrosPorHora, tramos, pico, minimo };
   });
 
   const conCombustible = porMaquina.filter(x=>x.litros>0);
   const litrosOrd = [...conCombustible].sort((a,b)=>b.litros-a.litros);
-  barList('reporte-combustible-maquina', litrosOrd.map(x=>({label:x.nombre, value:x.litros, display:x.litros.toLocaleString()+' L'})));
+  renderCombustiblePorPlanta(conCombustible);
 
   const porHoraOrd = conCombustible.filter(x=>x.tramos.length).sort((a,b)=>b.litrosPorHora-a.litrosPorHora);
   const hElBase = document.getElementById('reporte-combustible-hora');
@@ -1047,7 +1149,7 @@ function renderReporteCombustiblePorMaquina(){
   } else {
     const maxProm = Math.max(...porHoraOrd.map(x=>x.litrosPorHora));
     hElBase.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Consumo = litros de cada carga ÷ horas trabajadas desde la carga anterior. Tocá una máquina para ver el historial.</div>' +
-    porHoraOrd.map(x=>`<details style="margin-bottom:10px">
+    agruparPorPlanta(porHoraOrd, x=>`<details style="margin-bottom:10px">
       <summary style="cursor:pointer;list-style:none">
         <div class="bar-row" style="margin-bottom:0">
           <div class="bar-row-top"><span>${x.nombre}</span><span style="font-weight:600;color:var(--text)">prom ${x.litrosPorHora.toFixed(1)} L/hs</span></div>
@@ -1066,7 +1168,7 @@ function renderReporteCombustiblePorMaquina(){
             <div class="item-ref">${t.litros.toLocaleString()} L cargados</div>
           </div>`;}).join('')}
       </div>
-    </details>`).join('');
+    </details>`, g=>`${g.length} máquina${g.length===1?'':'s'} · prom ${(g.reduce((s,x)=>s+x.tramos.reduce((a,t)=>a+t.litros,0),0)/g.reduce((s,x)=>s+x.horas,0)).toFixed(1)} L/hs`);
   }
 
   const sinHoras = [];
@@ -1104,8 +1206,6 @@ function renderReportePorUbicacion(){
     };
   });
 
-  const litrosOrd = [...porUbic].sort((a,b)=>b.litros-a.litros);
-  barList('reporte-combustible-ubic', litrosOrd.map(x=>({label:x.ubicacion, value:x.litros, display:x.litros.toLocaleString()+' L'})));
 
   const serviceOrd = [...porUbic].sort((a,b)=>b.services-a.services);
   barList('reporte-service-ubic', serviceOrd.map(x=>({label:x.ubicacion, value:x.services})));
